@@ -1491,8 +1491,10 @@ macro_rules! decl_module {
 		$vis fn $name(
 			$origin: $origin_ty $(, $param: $param_ty )*
 		) -> $crate::dispatch::DispatchResult {
+
+			$crate::log::info!(target: "HALP", "\ndispatch-no-return pre-trace {}", stringify!($name));
 			$crate::sp_tracing::enter_span!($crate::sp_tracing::trace_span!(stringify!($name, "zeke")));
-			$crate::log::info!(target: "HALP", "dispatch-no-return {}\n\n", stringify!($name));
+			$crate::log::info!(target: "HALP", "dispatch-no-return post-trace{}\n", stringify!($name));
 			{ $( $impl )* }
 			Ok(())
 		}
