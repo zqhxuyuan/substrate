@@ -1400,6 +1400,7 @@ macro_rules! decl_module {
 		{
 			fn on_finalize(_block_number_not_used: <$trait_instance as $system::Config>::BlockNumber) {
 				$crate::sp_tracing::enter_span!($crate::sp_tracing::trace_span!("on_finalizeTEST-1", test="TEST-1"));
+				// $crate::log::info!(target: "HALP", "on final 1{}\n\n", stringify!($crate));
 				{ $( $impl )* }
 			}
 		}
@@ -1417,6 +1418,7 @@ macro_rules! decl_module {
 		{
 			fn on_finalize($param: $param_ty) {
 				$crate::sp_tracing::enter_span!($crate::sp_tracing::trace_span!("on_finalizeTEST-2", test="TEST-2"));
+				// $crate::log::info!(target: "HALP", "on final 2{}\n\n", stringify!($crate));
 				{ $( $impl )* }
 			}
 		}
@@ -1490,6 +1492,7 @@ macro_rules! decl_module {
 			$origin: $origin_ty $(, $param: $param_ty )*
 		) -> $crate::dispatch::DispatchResult {
 			$crate::sp_tracing::enter_span!($crate::sp_tracing::trace_span!(stringify!($name, "zeke")));
+			$crate::log::info!(target: "HALP", "dispatch-no-return {}\n\n", stringify!($name));
 			{ $( $impl )* }
 			Ok(())
 		}
@@ -1509,6 +1512,7 @@ macro_rules! decl_module {
 		$(#[$fn_attr])*
 		$vis fn $name($origin: $origin_ty $(, $param: $param_ty )* ) -> $result {
 			$crate::sp_tracing::enter_span!($crate::sp_tracing::trace_span!(stringify!($name, "419")));
+			$crate::log::info!(target: "HALP", "dispatch-with-return {}\n\n", stringify!($name));
 			$( $impl )*
 		}
 	};

@@ -24,6 +24,7 @@ extern crate self as frame_support;
 
 #[doc(hidden)]
 pub use sp_tracing;
+pub use log;
 
 #[cfg(feature = "std")]
 pub use serde;
