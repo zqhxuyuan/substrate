@@ -73,8 +73,13 @@ pub fn expand_hooks(def: &mut Def) -> proc_macro2::TokenStream {
 			fn on_initialize(
 				n: <T as #frame_system::Config>::BlockNumber
 			) -> #frame_support::weights::Weight {
+				let pallet_name = <
+					<T as #frame_system::Config>::PalletInfo
+					as
+					#frame_support::traits::PalletInfo
+				>::name::<Self>().unwrap_or("<unknown pallet name>");
 				#frame_support::sp_tracing::enter_span!(
-					#frame_support::sp_tracing::trace_span!("on_initialize")
+					#frame_support::sp_tracing::trace_span!("on_initialize", name=pallet_name)
 				);
 				<
 					Self as #frame_support::traits::Hooks<
