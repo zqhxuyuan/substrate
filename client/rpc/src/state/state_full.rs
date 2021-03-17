@@ -28,7 +28,10 @@ use rpc::{Result as RpcResult, futures::{stream, Future, Sink, Stream, future::r
 
 use sc_rpc_api::state::ReadProof;
 use sc_client_api::backend::Backend;
-use sp_blockchain::{Result as ClientResult, Error as ClientError, HeaderMetadata, CachedHeaderMetadata, HeaderBackend};
+use sp_blockchain::{
+	Result as ClientResult, Error as ClientError, HeaderMetadata, CachedHeaderMetadata,
+	HeaderBackend
+};
 use sc_client_api::BlockchainEvents;
 use sp_core::{
 	Bytes, storage::{well_known_keys, StorageKey, StorageData, StorageChangeSet,
@@ -69,7 +72,7 @@ pub struct FullState<BE, Block: BlockT, Client> {
 impl<BE, Block: BlockT, Client> FullState<BE, Block, Client>
 	where
 		BE: Backend<Block>,
-		Client: StorageProvider<Block, BE> + HeaderBackend<Block>
+		Client: StorageProvider<Block, BE> + HeaderBackend<Block> + BlockBackend<Block>
 			+ HeaderMetadata<Block, Error = sp_blockchain::Error>,
 		Block: BlockT + 'static,
 {
@@ -224,6 +227,7 @@ impl<BE, Block, Client> StateBackend<Block, Client> for FullState<BE, Block, Cli
 	Client: ExecutorProvider<Block> + StorageProvider<Block, BE> + ProofProvider<Block> + HeaderBackend<Block>
 		+ HeaderMetadata<Block, Error = sp_blockchain::Error> + BlockchainEvents<Block>
 		+ CallApiAt<Block> + ProvideRuntimeApi<Block>
+		+ BlockBackend<Block>
 		+ Send + Sync + 'static,
 	Client::Api: Metadata<Block>,
 {
@@ -527,6 +531,18 @@ impl<BE, Block, Client> StateBackend<Block, Client> for FullState<BE, Block, Cli
 	) -> RpcResult<bool> {
 		Ok(self.subscriptions.cancel(id))
 	}
+
+	fn trace_block(
+		&self,
+		block: Block::Hash,
+		targets: Option<String>,
+	) -> FutureResult<sp_rpc::tracing::BlockTrace> {
+		Box::new(result(
+			sc_tracing::block::BlockExecutor::new(self.client.clone(), block, targets)
+			.trace_block()
+			.map_err(|e| invalid_block::<Block>(block, None, e.to_owned()))
+		))
+	}
 }
 
 impl<BE, Block, Client> ChildStateBackend<Block, Client> for FullState<BE, Block, Client> where
@@ -534,7 +550,7 @@ impl<BE, Block, Client> ChildStateBackend<Block, Client> for FullState<BE, Block
 	BE: Backend<Block> + 'static,
 	Client: ExecutorProvider<Block> + StorageProvider<Block, BE> + HeaderBackend<Block>
 		+ HeaderMetadata<Block, Error = sp_blockchain::Error> + BlockchainEvents<Block>
-		+ CallApiAt<Block> + ProvideRuntimeApi<Block>
+		+ CallApiAt<Block> + ProvideRuntimeApi<Block> + BlockBackend<Block>
 		+ Send + Sync + 'static,
 	Client::Api: Metadata<Block>,
 {
