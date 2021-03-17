@@ -168,6 +168,7 @@ pub trait StateBackend<Block: BlockT, Client>: Send + Sync + 'static
 		id: SubscriptionId,
 	) -> RpcResult<bool>;
 
+	/// Trace storage changes for block
 	fn trace_block(
 		&self,
 		block: Block::Hash,
@@ -188,6 +189,7 @@ pub fn new_full<BE, Block: BlockT, Client>(
 			+ HeaderMetadata<Block, Error = sp_blockchain::Error> + BlockchainEvents<Block>
 			+ CallApiAt<Block> + HeaderBackend<Block>
 			+ BlockBackend<Block> + ProvideRuntimeApi<Block> + Send + Sync + 'static,
+		Client::Api: Metadata<Block>,
 {
 	let child_backend = Box::new(
 		self::state_full::FullState::new(client.clone(), subscriptions.clone())
