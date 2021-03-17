@@ -29,6 +29,7 @@
 #![warn(missing_docs)]
 
 pub mod logging;
+pub mod block;
 
 use rustc_hash::FxHashMap;
 use std::fmt;
@@ -48,6 +49,7 @@ use tracing_subscriber::{
 };
 use sc_telemetry::{telemetry, SUBSTRATE_INFO};
 use sp_tracing::{WASM_NAME_KEY, WASM_TARGET_KEY, WASM_TRACE_IDENTIFIER};
+use std::collections::HashMap;
 
 #[doc(hidden)]
 pub use tracing;
@@ -60,6 +62,7 @@ pub struct ProfilingLayer {
 	trace_handler: Box<dyn TraceHandler>,
 	span_data: Mutex<FxHashMap<Id, SpanDatum>>,
 	current_span: CurrentSpan,
+	span_data: Mutex<HashMap<Id, SpanDatum>>,
 }
 
 /// Used to configure how to receive the metrics
@@ -123,17 +126,28 @@ pub struct SpanDatum {
 	pub values: Values,
 }
 
+impl From<Values> for sp_rpc::tracing::Values {
+	fn from(v: Values) -> Self {
+		sp_rpc::tracing::Values {
+			bool_values: v.bool_values,
+			i64_values: v.i64_values,
+			u64_values: v.u64_values,
+			string_values: v.string_values,
+		}
+	}
+}
+
 /// Holds associated values for a tracing span
 #[derive(Default, Clone, Debug)]
 pub struct Values {
 	/// HashMap of `bool` values
-	pub bool_values: FxHashMap<String, bool>,
+	pub bool_values: HashMap<String, bool>,
 	/// HashMap of `i64` values
-	pub i64_values: FxHashMap<String, i64>,
+	pub i64_values: HashMap<String, i64>,
 	/// HashMap of `u64` values
-	pub u64_values: FxHashMap<String, u64>,
+	pub u64_values: HashMap<String, u64>,
 	/// HashMap of `String` values
-	pub string_values: FxHashMap<String, String>,
+	pub string_values: HashMap<String, String>,
 }
 
 impl Values {
@@ -231,7 +245,7 @@ impl ProfilingLayer {
 		Self {
 			targets,
 			trace_handler,
-			span_data: Mutex::new(FxHashMap::default()),
+			span_data: Mutex::new(HashMap::default()),
 			current_span: Default::default(),
 		}
 	}
@@ -272,7 +286,7 @@ impl<S: Subscriber> Layer<S> for ProfilingLayer {
 			parent_id: attrs.parent().cloned().or_else(|| self.current_span.id()),
 			name: attrs.metadata().name().to_owned(),
 			target: attrs.metadata().target().to_owned(),
-			level: attrs.metadata().level().clone(),
+			level: *attrs.metadata().level().clone(),
 			line: attrs.metadata().line().unwrap_or(0),
 			start_time: Instant::now(),
 			overall_time: ZERO_DURATION,
@@ -294,7 +308,7 @@ impl<S: Subscriber> Layer<S> for ProfilingLayer {
 		let trace_event = TraceEvent {
 			name: event.metadata().name(),
 			target: event.metadata().target().to_owned(),
-			level: event.metadata().level().clone(),
+			level: *event.metadata().level(),
 			values,
 			parent_id: event.parent().cloned().or_else(|| self.current_span.id()),
 		};
@@ -311,7 +325,6 @@ impl<S: Subscriber> Layer<S> for ProfilingLayer {
 	}
 
 	fn on_exit(&self, span: &Id, _ctx: Context<S>) {
-		self.current_span.exit();
 		let end_time = Instant::now();
 		let span_datum = {
 			let mut span_data = self.span_data.lock();
@@ -319,6 +332,7 @@ impl<S: Subscriber> Layer<S> for ProfilingLayer {
 		};
 
 		if let Some(mut span_datum) = span_datum {
+			self.current_span.exit();
 			span_datum.overall_time += end_time - span_datum.start_time;
 			if span_datum.name == WASM_TRACE_IDENTIFIER {
 				span_datum.values.bool_values.insert("wasm".to_owned(), true);
@@ -337,9 +351,7 @@ impl<S: Subscriber> Layer<S> for ProfilingLayer {
 		};
 	}
 
-	fn on_close(&self, span: Id, ctx: Context<S>) {
-		self.on_exit(&span, ctx)
-	}
+	fn on_close(&self, _span: Id, _ctx: Context<S>) {}
 }
 
 /// TraceHandler for sending span data to the logger

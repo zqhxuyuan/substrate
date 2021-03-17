@@ -32,6 +32,15 @@ tracing-subscriber = "0.2.15"
 sp-tracing = { version = "3.0.0", path = "../../primitives/tracing" }
 sc-telemetry = { version = "3.0.0", path = "../telemetry" }
 sc-tracing-proc-macro = { version = "3.0.0", path = "./proc-macro" }
+sp-rpc = { version = "3.0.0", path = "../../primitives/rpc" }
+sp-block-builder = { version = "3.0.0", path = "../../primitives/block-builder" }
+sp-storage = { version = "3.0.0", path = "../../primitives/storage" }
+sp-runtime = { version = "3.0.0", path = "../../primitives/runtime" }
+sp-blockchain = { version = "3.0.0", path = "../../primitives/blockchain" }
+sp-api = { version = "3.0.0", path = "../../primitives/api" }
+sc-telemetry = { version = "3.0.0", path = "../telemetry" }
+sc-client-api = { version = "3.0.0", path = "../api" }
+wasm-timer = "0.2"
 
 [target.'cfg(target_os = "unknown")'.dependencies]
 wasm-bindgen = "0.2.67"

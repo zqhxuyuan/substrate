@@ -136,7 +136,6 @@ pub trait StateApi<Hash> {
 	fn unsubscribe_storage(
 		&self, metadata: Option<Self::Metadata>, id: SubscriptionId
 	) -> RpcResult<bool>;
-}
 
 	/// Re-execute a block and return a trace of all storage changes
 	#[rpc(name = "state_traceBlock")]
