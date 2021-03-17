@@ -60,9 +60,8 @@ const ZERO_DURATION: Duration = Duration::from_nanos(0);
 pub struct ProfilingLayer {
 	targets: Vec<(String, Level)>,
 	trace_handler: Box<dyn TraceHandler>,
-	span_data: Mutex<FxHashMap<Id, SpanDatum>>,
-	current_span: CurrentSpan,
 	span_data: Mutex<HashMap<Id, SpanDatum>>,
+	current_span: CurrentSpan,
 }
 
 /// Used to configure how to receive the metrics
@@ -286,7 +285,7 @@ impl<S: Subscriber> Layer<S> for ProfilingLayer {
 			parent_id: attrs.parent().cloned().or_else(|| self.current_span.id()),
 			name: attrs.metadata().name().to_owned(),
 			target: attrs.metadata().target().to_owned(),
-			level: *attrs.metadata().level().clone(),
+			level: *attrs.metadata().level(),
 			line: attrs.metadata().line().unwrap_or(0),
 			start_time: Instant::now(),
 			overall_time: ZERO_DURATION,
