@@ -274,6 +274,9 @@ impl<Block, Client> BlockExecutor<Block, Client>
 			spans,
 			events,
 		};
+
+		log::info!("BlockExecutor::trace_block exiting...");
+
 		Ok(block_traces)
 	}
 }
