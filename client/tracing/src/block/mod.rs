@@ -34,7 +34,11 @@ use sp_tracing::{WASM_NAME_KEY, WASM_TARGET_KEY, WASM_TRACE_IDENTIFIER};
 
 use tracing_core::{Level, span::{Attributes, Record, Id}};
 use wasm_timer::Instant;
+
+// Stuff for debugging
 use log::{log};
+
+pub use tracing::trace;
 
 // Default to only pallet, frame support and state related traces
 const DEFAULT_TARGETS: &'static str = "pallet,frame,state";
@@ -86,6 +90,16 @@ impl Subscriber for BlockSubscriber {
 
 	fn new_span(&self, attrs: &Attributes<'_>) -> Id {
 		let id = self.next_id.fetch_add(1, Ordering::Relaxed);
+
+
+		// Debugging
+		trace!(target: "frame",
+			message="Subscriber::new_span",
+			span_id=id,
+		);
+
+		log::info!("\n Subscriber::new_span (id: {})", id);
+
 		let mut values = Values::default();
 		attrs.record(&mut values);
 		let parent_id = attrs.parent()
@@ -102,20 +116,23 @@ impl Subscriber for BlockSubscriber {
 			exited: vec![],
 			values: Values::default(),
 		};
+
 		// doesn't do anything
 		log::info!("\nspan id: {:#?}, span name: {}, span target: {}\n",
 			id, attrs.metadata().name().to_owned(), attrs.metadata().target().to_owned()
 		);
+
 		let id = Id::from_u64(id);
 		self.spans.lock().insert(id.clone(), span);
 		id
 	}
 
 	fn record(&self, span: &Id, values: &Record<'_>) {
+
+		log::info!("\nSubscriber::record (span id {:#?})", span);
+
 		let mut span_data = self.spans.lock();
 		if let Some(s) = span_data.get_mut(span) {
-			// doesn't do anything
-			log::info!("record span: {:#?}\n", s.values);
 			values.record(&mut s.values);
 		}
 	}
@@ -125,6 +142,10 @@ impl Subscriber for BlockSubscriber {
 	}
 
 	fn event(&self, event: &tracing_core::Event<'_>) {
+
+		log::info!("\nSubscriber::event (event {:#?})", event);
+
+
 		let mut values = crate::Values::default();
 		event.record(&mut values);
 		let parent_id = event.parent()
@@ -138,15 +159,15 @@ impl Subscriber for BlockSubscriber {
 			values: values.into(),
 			parent_id,
 		};
-		// doesn't do anything
-		log::info!("trace event: {:#?}\n", event);
 		self.events.lock().push(trace_event);
 	}
 
 	fn enter(&self, id: &Id) {
+
+		log::info!("\nSubscriber::enter (Id: {:#?})", id);
+
 		self.current_span.enter(id.clone());
 		// doesn't do anything
-		log::info!("trace current span {:#?}", self.current_span);
 		let mut span_data = self.spans.lock();
 		if let Some(span) = span_data.get_mut(&id) {
 			span.entered.push(Instant::now() - self.timestamp);
@@ -154,8 +175,9 @@ impl Subscriber for BlockSubscriber {
 	}
 
 	fn exit(&self, span: &Id) {
-		// doesn't do anything
-		log::info!("exit span: {:#?}\n", span);
+
+		log::info!("\nSubscriber::exit (Id {:#?})", span);
+
 		if let Some(s) = self.spans.lock().get_mut(span) {
 			self.current_span.exit();
 			s.exited.push(Instant::now() - self.timestamp)
@@ -205,13 +227,19 @@ impl<Block, Client> BlockExecutor<Block, Client>
 		let sub = BlockSubscriber::new(targets, spans, events);
 		let dispatch = Dispatch::new(sub);
 
-		log::info!("\ntrace_block span\n");
 		if let Err(e) = dispatcher::with_default(&dispatch, || {
+
+			log::info!("\nBlockExecutor::trace_block (target {})", TRACE_TARGET);
+
 			let span = tracing::info_span!(
 				target: TRACE_TARGET,
 				"trace_block",
 			);
 			let _enter = span.enter();
+
+			trace!(target: "frame", // debug
+				message="First event in BlockExecutor::trace_block span",
+			);
 			self.client.runtime_api().execute_block(&parent_id, block)
 		}) {
 			return Err(format!("Error executing block: {:?}", e));
@@ -233,6 +261,7 @@ impl<Block, Client> BlockExecutor<Block, Client>
 			.filter_map(|s| patch_and_filter(s, targets))
 			.collect();
 
+		log::info!("BlockExecutor::trace_block (spans.len() {})", spans.len());
 		spans.sort_by(|a, b| a.entered[0].cmp(&b.entered[0]));
 
 		let events = sub.events.lock().drain(..).map(|s| s.into()).collect();
