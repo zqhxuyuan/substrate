@@ -228,8 +228,11 @@ impl<Block, Client> BlockExecutor<Block, Client>
 		let sub = BlockSubscriber::new(targets, spans, events);
 		let dispatch = Dispatch::new(sub);
 
+		// Shows up
 		log::info!("\nBlockExecutor::trace_block pre dispatcher");
+
 		if let Err(e) = dispatcher::with_default(&dispatch, || {
+
 			// Does not show up
 			log::info!("\nBlockExecutor::trace_block (target {})", TRACE_TARGET);
 
