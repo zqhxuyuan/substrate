@@ -236,6 +236,7 @@ impl<Block, Client> BlockExecutor<Block, Client>
 				"trace_block",
 			);
 			let _enter = span.enter();
+			log::info!("\nBlockExecutor::trace_block span entered");
 
 			trace!(target: "frame", // debug
 				message="First event in BlockExecutor::trace_block span",
