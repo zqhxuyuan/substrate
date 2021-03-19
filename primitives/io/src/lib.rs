@@ -1128,11 +1128,18 @@ pub trait WasmTracing {
 	/// side even after the local span is dropped. The resulting ID is then handed over to the wasm-
 	/// side.
 	fn enter_span(&mut self, span: Crossing<sp_tracing::WasmEntryAttributes>) -> u64 {
+		log::info!("WasmTracing::enter_span (first line of fn)");
+		tracing::trace!(
+			target="frame",
+			message="WasmTracing::enter_span"
+		);
 		let span: tracing::Span = span.into_inner().into();
 		match span.id() {
 			Some(id) => tracing::dispatcher::get_default(|d| {
 				// inform dispatch that we'll keep the ID around
 				// then enter it immediately
+				log::info!("WasmTracing::enter_span (id: {})", id.into_u64());
+
 				let final_id = d.clone_span(&id);
 				d.enter(&final_id);
 				final_id.into_u64()

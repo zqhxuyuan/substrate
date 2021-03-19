@@ -36,9 +36,8 @@ use tracing_core::{Level, span::{Attributes, Record, Id}};
 use wasm_timer::Instant;
 
 // Stuff for debugging
-use log::{log};
-
-pub use tracing::trace;
+use log;
+use tracing::trace;
 
 // Default to only pallet, frame support and state related traces
 const DEFAULT_TARGETS: &'static str = "pallet,frame,state";
@@ -85,7 +84,8 @@ impl Subscriber for BlockSubscriber {
 				return true;
 			}
 		}
-		false
+		// false
+		true
 	}
 
 	fn new_span(&self, attrs: &Attributes<'_>) -> Id {
