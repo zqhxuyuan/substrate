@@ -228,6 +228,18 @@ impl<Block, Client> BlockExecutor<Block, Client>
 		let sub = BlockSubscriber::new(targets, spans, events);
 		let dispatch = Dispatch::new(sub);
 
+		// Doesn't show up
+		let span = tracing::info_span!(
+			target: TRACE_TARGET,
+			"yolo span",
+		);
+		let _enter = span.enter();
+		// Doesn't show up
+		trace!(target: "frame", // debug
+			message="yolo event",
+		);
+
+
 		// Shows up
 		log::info!("\nBlockExecutor::trace_block pre dispatcher");
 
@@ -252,6 +264,7 @@ impl<Block, Client> BlockExecutor<Block, Client>
 		}) {
 			return Err(format!("Error executing block: {:?}", e));
 		}
+
 		let sub = dispatch.downcast_ref::<BlockSubscriber>()
 			.ok_or("Cannot downcast Dispatch to BlockSubscriber after tracing block")?;
 		let mut spans: Vec<Span> = sub.spans
@@ -260,7 +273,7 @@ impl<Block, Client> BlockExecutor<Block, Client>
 			.map(|(_, s)| s.into())
 			.into_iter()
 			.map(|s| {
-				// log::info!("Span in unfiltered array {:#?}", s);
+				// log::info!("BlockExecutor::trace_block {:#?}", s);
 				s
 			})
 			// First filter out any spans that were never entered
