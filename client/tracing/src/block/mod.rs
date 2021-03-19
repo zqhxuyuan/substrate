@@ -40,7 +40,8 @@ use log;
 use tracing::trace;
 
 // Default to only pallet, frame support and state related traces
-const DEFAULT_TARGETS: &'static str = "pallet,frame,state";
+// const DEFAULT_TARGETS: &'static str = "pallet,frame,state";
+const DEFAULT_TARGETS: &'static str = "";
 const TRACE_TARGET: &'static str = "block_trace";
 
 struct BlockSubscriber {
@@ -84,8 +85,8 @@ impl Subscriber for BlockSubscriber {
 				return true;
 			}
 		}
-		// false
-		true
+		false
+		// true
 	}
 
 	fn new_span(&self, attrs: &Attributes<'_>) -> Id {
@@ -93,13 +94,13 @@ impl Subscriber for BlockSubscriber {
 
 
 		// Does not show up
-		trace!(target: "frame",
-			message="Subscriber::new_span",
-			span_id=id,
-		);
+		// trace!(target: "frame",
+		// 	message="Subscriber::new_span",
+		// 	span_id=id,
+		// );
 
 		// Does not show up
-		log::info!("\n Subscriber::new_span (id: {})", id);
+		// log::info!("\n Subscriber::new_span (id: {})", id);
 
 		let mut values = Values::default();
 		attrs.record(&mut values);
@@ -119,9 +120,9 @@ impl Subscriber for BlockSubscriber {
 		};
 
 		// Does not show up
-		log::info!("\nspan id: {:#?}, span name: {}, span target: {}\n",
-			id, attrs.metadata().name().to_owned(), attrs.metadata().target().to_owned()
-		);
+		// log::info!("\nspan id: {:#?}, span name: {}, span target: {}\n",
+		// 	id, attrs.metadata().name().to_owned(), attrs.metadata().target().to_owned()
+		// );
 
 		let id = Id::from_u64(id);
 		self.spans.lock().insert(id.clone(), span);
@@ -130,7 +131,7 @@ impl Subscriber for BlockSubscriber {
 
 	fn record(&self, span: &Id, values: &Record<'_>) {
 		// Does not show up
-		log::info!("\nSubscriber::record (span id {:#?})", span);
+		// log::info!("\nSubscriber::record (span id {:#?})", span);
 
 		let mut span_data = self.spans.lock();
 		if let Some(s) = span_data.get_mut(span) {
@@ -144,7 +145,7 @@ impl Subscriber for BlockSubscriber {
 
 	fn event(&self, event: &tracing_core::Event<'_>) {
 		// Does not show up
-		log::info!("\nSubscriber::event (event {:#?})", event);
+		// log::info!("\nSubscriber::event (event {:#?})", event);
 
 
 		let mut values = crate::Values::default();
@@ -165,7 +166,7 @@ impl Subscriber for BlockSubscriber {
 
 	fn enter(&self, id: &Id) {
 		// Does not show up
-		log::info!("\nSubscriber::enter (Id: {:#?})", id);
+		// log::info!("\nSubscriber::enter (Id: {:#?})", id);
 
 		self.current_span.enter(id.clone());
 		// doesn't do anything
@@ -177,7 +178,7 @@ impl Subscriber for BlockSubscriber {
 
 	fn exit(&self, span: &Id) {
 		// Does not show up
-		log::info!("\nSubscriber::exit (Id {:#?})", span);
+		// log::info!("\nSubscriber::exit (Id {:#?})", span);
 
 		if let Some(s) = self.spans.lock().get_mut(span) {
 			self.current_span.exit();
