@@ -96,13 +96,10 @@ fn genesis_constructor(
 		.map(chain_spec::authority_keys_from_seed)
 		.collect::<Vec<_>>();
 
-	let enable_println = true;
-
 	chain_spec::testnet_genesis(
 		authorities,
 		sudo_account.clone(),
 		Some(endowed_accounts.to_vec()),
-		enable_println,
 	)
 }
 

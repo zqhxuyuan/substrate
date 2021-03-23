@@ -20,7 +20,7 @@ use crate::{
 	TrieId, BalanceOf, ContractInfo, gas::GasMeter, rent::Rent, storage::{self, Storage},
 	Error, ContractInfoOf, Schedule, AliveContractInfo,
 };
-use sp_core::crypto::UncheckedFrom;
+use sp_core::{Bytes, crypto::UncheckedFrom};
 use sp_std::{
 	prelude::*,
 	marker::PhantomData,
@@ -305,6 +305,14 @@ pub trait Ext: sealing::Sealed {
 
 	/// Information needed for rent calculations.
 	fn rent_params(&self) -> &RentParams<Self::T>;
+
+	/// Append a line to the debug message buffer.
+	///
+	/// This is a no-op if debug message recording is disabled which is always the case
+	/// when the code is executing on-chain.
+	///
+	/// Returns `true` if debug message recording is disabled. Otherwise `false` is returned.
+	fn append_debug_line(&mut self, msg: &str) -> bool;
 }
 
 /// Describes the different functions that can be exported by an [`Executable`].
@@ -398,6 +406,7 @@ pub struct ExecutionContext<'a, T: Config + 'a, E> {
 	schedule: &'a Schedule<T>,
 	timestamp: MomentOf<T>,
 	block_number: T::BlockNumber,
+	debug_message: Option<Vec<u8>>,
 	_phantom: PhantomData<E>,
 }
 
@@ -411,7 +420,10 @@ where
 	///
 	/// The specified `origin` address will be used as `sender` for. The `origin` must be a regular
 	/// account (not a contract).
-	pub fn top_level(origin: T::AccountId, schedule: &'a Schedule<T>) -> Self {
+	///
+	/// `debug`: Specified whether debug messages should be recorded. This adds allocations
+	/// and is potentially unsafe. It must never be activated during on-chain execution.
+	pub fn top_level(origin: T::AccountId, schedule: &'a Schedule<T>, debug: bool) -> Self {
 		ExecutionContext {
 			caller: None,
 			self_trie_id: None,
@@ -420,6 +432,8 @@ where
 			schedule,
 			timestamp: T::Time::now(),
 			block_number: <frame_system::Pallet<T>>::block_number(),
+			debug_message:
+				if debug { Some(b"Messages from the contract:\n".to_vec()) } else { None },
 			_phantom: Default::default(),
 		}
 	}
@@ -435,6 +449,7 @@ where
 			schedule: self.schedule,
 			timestamp: self.timestamp.clone(),
 			block_number: self.block_number.clone(),
+			debug_message: None,
 			_phantom: Default::default(),
 		}
 	}
@@ -451,7 +466,7 @@ where
 		gas_meter: &mut GasMeter<T>,
 		input_data: Vec<u8>,
 	) -> Result<(ExecReturnValue, u32), (ExecError, u32)> {
-		if self.depth == T::MaxDepth::get() as usize {
+		if self.depth == T::Schedule::get().limits.call_depth as usize {
 			return Err((Error::<T>::MaxCallDepthReached.into(), 0));
 		}
 
@@ -509,7 +524,7 @@ where
 		input_data: Vec<u8>,
 		salt: &[u8],
 	) -> Result<(T::AccountId, ExecReturnValue), ExecError> {
-		if self.depth == T::MaxDepth::get() as usize {
+		if self.depth == T::Schedule::get().limits.call_depth as usize {
 			Err(Error::<T>::MaxCallDepthReached)?
 		}
 
@@ -590,6 +605,13 @@ where
 		})?;
 
 		Ok((dest, output))
+	}
+
+	/// Consume the execution context and return the accumulated debug message.
+	///
+	/// Returns empty `Bytes` when debug message recording was disabled.
+	pub fn consume_debug_message(self) -> Bytes {
+		Bytes(self.debug_message.unwrap_or_else(|| Vec::new()))
 	}
 
 	fn new_call_context<'b>(
@@ -922,7 +944,7 @@ where
 	fn block_number(&self) -> T::BlockNumber { self.block_number }
 
 	fn max_value_size(&self) -> u32 {
-		T::MaxValueSize::get()
+		T::Schedule::get().limits.payload_len
 	}
 
 	fn get_weight_price(&self, weight: Weight) -> BalanceOf<Self::T> {
@@ -935,6 +957,18 @@ where
 
 	fn rent_params(&self) -> &RentParams<Self::T> {
 		&self.rent_params
+	}
+
+	fn append_debug_line(&mut self, msg: &str) -> bool {
+		if let Some(ref mut buffer) = self.ctx.debug_message {
+			if !msg.is_empty() {
+				buffer.extend(msg.as_bytes().iter().chain(b"\n".iter()));
+				log::info!(target: "runtime::contracts", "seal_println: {}", msg);
+			}
+			true
+		} else {
+			false
+		}
 	}
 }
 
@@ -978,7 +1012,7 @@ mod tests {
 			test_utils::{place_contract, set_balance, get_balance},
 		},
 		exec::ExportedFunction::*,
-		Error, Weight, CurrentSchedule,
+		Error, Weight,
 	};
 	use sp_core::Bytes;
 	use sp_runtime::DispatchError;
@@ -1175,8 +1209,8 @@ mod tests {
 		});
 
 		ExtBuilder::default().build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			place_contract(&BOB, exec_ch);
 
 			assert_matches!(
@@ -1225,8 +1259,8 @@ mod tests {
 		);
 
 		ExtBuilder::default().build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(origin.clone(), &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(origin.clone(), &schedule, false);
 			place_contract(&BOB, return_ch);
 			set_balance(&origin, 100);
 			let balance = get_balance(&dest);
@@ -1285,8 +1319,8 @@ mod tests {
 		);
 
 		ExtBuilder::default().build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(origin, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(origin, &schedule, false);
 			place_contract(&BOB, return_ch);
 
 			let result = ctx.call(
@@ -1314,8 +1348,8 @@ mod tests {
 		);
 
 		ExtBuilder::default().build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(origin, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(origin, &schedule, false);
 			place_contract(&BOB, return_ch);
 
 			let result = ctx.call(
@@ -1340,8 +1374,8 @@ mod tests {
 
 		// This one tests passing the input data into a contract via call.
 		ExtBuilder::default().build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			place_contract(&BOB, input_data_ch);
 
 			let result = ctx.call(
@@ -1363,9 +1397,9 @@ mod tests {
 
 		// This one tests passing the input data into a contract via instantiate.
 		ExtBuilder::default().build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
+			let schedule = <Test as Config>::Schedule::get();
 			let subsistence = Contracts::<Test>::subsistence_threshold();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			let mut gas_meter = GasMeter::<Test>::new(GAS_LIMIT);
 			let executable = MockExecutable::from_storage(
 				input_data_ch, &schedule, &mut gas_meter
@@ -1416,8 +1450,8 @@ mod tests {
 		});
 
 		ExtBuilder::default().build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			set_balance(&BOB, 1);
 			place_contract(&BOB, recurse_ch);
 
@@ -1464,8 +1498,8 @@ mod tests {
 		});
 
 		ExtBuilder::default().build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(origin.clone(), &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(origin.clone(), &schedule, false);
 			place_contract(&dest, bob_ch);
 			place_contract(&CHARLIE, charlie_ch);
 
@@ -1502,8 +1536,8 @@ mod tests {
 		});
 
 		ExtBuilder::default().build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			place_contract(&BOB, bob_ch);
 			place_contract(&CHARLIE, charlie_ch);
 
@@ -1523,8 +1557,8 @@ mod tests {
 		let dummy_ch = MockLoader::insert(Constructor, |_, _| exec_success());
 
 		ExtBuilder::default().existential_deposit(15).build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			let mut gas_meter = GasMeter::<Test>::new(GAS_LIMIT);
 			let executable = MockExecutable::from_storage(
 				dummy_ch, &schedule, &mut gas_meter
@@ -1551,8 +1585,8 @@ mod tests {
 		);
 
 		ExtBuilder::default().existential_deposit(15).build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			let mut gas_meter = GasMeter::<Test>::new(GAS_LIMIT);
 			let executable = MockExecutable::from_storage(
 				dummy_ch, &schedule, &mut gas_meter
@@ -1587,8 +1621,8 @@ mod tests {
 		);
 
 		ExtBuilder::default().existential_deposit(15).build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			let mut gas_meter = GasMeter::<Test>::new(GAS_LIMIT);
 			let executable = MockExecutable::from_storage(
 				dummy_ch, &schedule, &mut gas_meter
@@ -1635,8 +1669,8 @@ mod tests {
 		});
 
 		ExtBuilder::default().existential_deposit(15).build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			set_balance(&ALICE, Contracts::<Test>::subsistence_threshold() * 100);
 			place_contract(&BOB, instantiator_ch);
 
@@ -1684,8 +1718,8 @@ mod tests {
 		});
 
 		ExtBuilder::default().existential_deposit(15).build().execute_with(|| {
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			set_balance(&ALICE, 1000);
 			set_balance(&BOB, 100);
 			place_contract(&BOB, instantiator_ch);
@@ -1712,8 +1746,8 @@ mod tests {
 			.existential_deposit(15)
 			.build()
 			.execute_with(|| {
-				let schedule = <CurrentSchedule<Test>>::get();
-				let mut ctx = MockContext::top_level(ALICE, &schedule);
+				let schedule = <Test as Config>::Schedule::get();
+				let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 				let mut gas_meter = GasMeter::<Test>::new(GAS_LIMIT);
 				let executable = MockExecutable::from_storage(
 					terminate_ch, &schedule, &mut gas_meter
@@ -1751,8 +1785,8 @@ mod tests {
 
 		ExtBuilder::default().build().execute_with(|| {
 			let subsistence = Contracts::<Test>::subsistence_threshold();
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			let mut gas_meter = GasMeter::<Test>::new(GAS_LIMIT);
 			let executable = MockExecutable::from_storage(
 				rent_allowance_ch, &schedule, &mut gas_meter
@@ -1783,8 +1817,8 @@ mod tests {
 
 		ExtBuilder::default().build().execute_with(|| {
 			let subsistence = Contracts::<Test>::subsistence_threshold();
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			let mut gas_meter = GasMeter::<Test>::new(GAS_LIMIT);
 			set_balance(&ALICE, subsistence * 10);
 			place_contract(&BOB, code_hash);
@@ -1831,8 +1865,8 @@ mod tests {
 
 		ExtBuilder::default().build().execute_with(|| {
 			let subsistence = Contracts::<Test>::subsistence_threshold();
-			let schedule = <CurrentSchedule<Test>>::get();
-			let mut ctx = MockContext::top_level(ALICE, &schedule);
+			let schedule = <Test as Config>::Schedule::get();
+			let mut ctx = MockContext::top_level(ALICE, &schedule, false);
 			let mut gas_meter = GasMeter::<Test>::new(GAS_LIMIT);
 			set_balance(&ALICE, subsistence * 100);
 			place_contract(&BOB, code_hash);

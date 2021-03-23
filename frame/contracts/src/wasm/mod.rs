@@ -140,6 +140,12 @@ where
 	pub fn refcount(&self) -> u64 {
 		self.refcount
 	}
+
+	/// Decrement schedule_version by 1. Panics if it is already 0.
+	#[cfg(test)]
+	pub fn decrement_version(&mut self) {
+		self.schedule_version = self.schedule_version.checked_sub(1).unwrap();
+	}
 }
 
 impl<T: Config> Executable<T> for PrefabWasmModule<T>
@@ -439,6 +445,10 @@ mod tests {
 		fn rent_params(&self) -> &RentParams<Self::T> {
 			&self.rent_params
 		}
+		fn append_debug_line(&mut self, msg: &str) -> bool {
+			println!("seal_println: {}", msg);
+			true
+		}
 	}
 
 	impl Ext for &mut MockExt {
@@ -543,6 +553,9 @@ mod tests {
 		}
 		fn rent_params(&self) -> &RentParams<Self::T> {
 			(**self).rent_params()
+		}
+		fn append_debug_line(&mut self, msg: &str) -> bool {
+			(**self).append_debug_line(msg)
 		}
 	}
 

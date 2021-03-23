@@ -59,10 +59,6 @@ pub struct Schedule<T: Config> {
 	/// order to avoid unnecessary re-instrumentations.
 	pub(crate) version: u32,
 
-	/// Whether the `seal_println` function is allowed to be used contracts.
-	/// MUST only be enabled for `dev` chains, NOT for production chains
-	pub(crate) enable_println: bool,
-
 	/// Describes the upper limits on various metrics.
 	pub(crate) limits: Limits,
 
@@ -121,6 +117,17 @@ pub struct Limits {
 
 	/// The maximum length of a subject in bytes used for PRNG generation.
 	pub subject_len: u32,
+
+	/// The maximum nesting level of the call stack.
+	pub call_depth: u32,
+
+	/// The maximum size of a storage value and event payload in bytes.
+	pub payload_len: u32,
+
+	/// The maximum length of a contract code in bytes. This limit applies to the instrumented
+	/// version of the code. Therefore `instantiate_with_code` can fail even when supplying
+	/// a wasm binary below this maximum size.
+	pub code_len: u32,
 }
 
 impl Limits {
@@ -454,8 +461,7 @@ macro_rules! cost_byte_batched {
 impl<T: Config> Default for Schedule<T> {
 	fn default() -> Self {
 		Self {
-			version: 0,
-			enable_println: false,
+			version: 1,
 			limits: Default::default(),
 			instruction_weights: Default::default(),
 			host_fn_weights: Default::default(),
@@ -476,6 +482,9 @@ impl Default for Limits {
 			table_size: 4096,
 			br_table_size: 256,
 			subject_len: 32,
+			call_depth: 32,
+			payload_len: 16 * 1024,
+			code_len: 128 * 1024,
 		}
 	}
 }
@@ -606,20 +615,6 @@ struct ScheduleRules<'a, T: Config> {
 }
 
 impl<T: Config> Schedule<T> {
-	/// Allow contracts to call `seal_println` in order to print messages to the console.
-	///
-	/// This should only ever be activated in development chains. The printed messages
-	/// can be observed on the console by setting the environment variable
-	/// `RUST_LOG=runtime=debug` when running the node.
-	///
-	/// # Note
-	///
-	/// Is set to `false` by default.
-	pub fn enable_println(mut self, enable: bool) -> Self {
-		self.enable_println = enable;
-		self
-	}
-
 	pub(crate) fn rules(&self, module: &elements::Module) -> impl rules::Rules + '_ {
 		ScheduleRules {
 			schedule: &self,

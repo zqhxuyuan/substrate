@@ -289,7 +289,7 @@ benchmarks! {
 
 	on_initialize_per_trie_key {
 		let k in 0..1024;
-		let instance = ContractWithStorage::<T>::new(k, T::MaxValueSize::get())?;
+		let instance = ContractWithStorage::<T>::new(k, T::Schedule::get().limits.payload_len)?;
 		Storage::<T>::queue_trie_for_deletion(&instance.contract.alive_info()?)?;
 	}: {
 		Storage::<T>::process_deletion_queue_batch(Weight::max_value())
@@ -310,22 +310,14 @@ benchmarks! {
 	// first time after a new schedule was deployed: For every new schedule a contract needs
 	// to re-run the instrumentation once.
 	instrument {
-		let c in 0 .. T::MaxCodeSize::get() / 1024;
+		let c in 0 .. T::Schedule::get().limits.code_len / 1024;
 		let WasmModule { code, hash, .. } = WasmModule::<T>::sized(c * 1024);
 		Contracts::<T>::store_code_raw(code)?;
 		let mut module = PrefabWasmModule::from_storage_noinstr(hash)?;
-		let schedule = <CurrentSchedule<T>>::get();
+		let schedule = T::Schedule::get();
 	}: {
 		Contracts::<T>::reinstrument_module(&mut module, &schedule)?;
 	}
-
-	// This extrinsic is pretty much constant as it is only a simple setter.
-	update_schedule {
-		let schedule = Schedule {
-			version: 1,
-			.. Default::default()
-		};
-	}: _(RawOrigin::Root, schedule)
 
 	// This constructs a contract that is maximal expensive to instrument.
 	// It creates a maximum number of metering blocks per byte.
@@ -339,7 +331,7 @@ benchmarks! {
 	// We cannot let `c` grow to the maximum code size because the code is not allowed
 	// to be larger than the maximum size **after instrumentation**.
 	instantiate_with_code {
-		let c in 0 .. Perbill::from_percent(50).mul_ceil(T::MaxCodeSize::get() / 1024);
+		let c in 0 .. Perbill::from_percent(50).mul_ceil(T::Schedule::get().limits.code_len / 1024);
 		let s in 0 .. code::max_pages::<T>() * 64;
 		let salt = vec![42u8; (s * 1024) as usize];
 		let endowment = caller_funding::<T>() / 3u32.into();
@@ -362,7 +354,7 @@ benchmarks! {
 	// `c`: Size of the code in kilobytes.
 	// `s`: Size of the salt in kilobytes.
 	instantiate {
-		let c in 0 .. T::MaxCodeSize::get() / 1024;
+		let c in 0 .. T::Schedule::get().limits.code_len / 1024;
 		let s in 0 .. code::max_pages::<T>() * 64;
 		let salt = vec![42u8; (s * 1024) as usize];
 		let endowment = caller_funding::<T>() / 3u32.into();
@@ -389,7 +381,7 @@ benchmarks! {
 	// part of `seal_input`.
 	// `c`: Size of the code in kilobytes.
 	call {
-		let c in 0 .. T::MaxCodeSize::get() / 1024;
+		let c in 0 .. T::Schedule::get().limits.code_len / 1024;
 		let data = vec![42u8; 1024];
 		let instance = Contract::<T>::with_caller(
 			whitelisted_caller(), WasmModule::dummy_with_bytes(c * 1024), vec![], Endow::CollectRent
@@ -422,7 +414,7 @@ benchmarks! {
 	// the reward for removing them.
 	// `c`: Size of the code of the contract that should be evicted.
 	claim_surcharge {
-		let c in 0 .. T::MaxCodeSize::get() / 1024;
+		let c in 0 .. T::Schedule::get().limits.code_len / 1024;
 		let instance = Contract::<T>::with_caller(
 			whitelisted_caller(), WasmModule::dummy_with_bytes(c * 1024), vec![], Endow::CollectRent
 		)?;
@@ -729,7 +721,7 @@ benchmarks! {
 	}
 
 	seal_terminate_per_code_kb {
-		let c in 0 .. T::MaxCodeSize::get() / 1024;
+		let c in 0 .. T::Schedule::get().limits.code_len / 1024;
 		let beneficiary = account::<T::AccountId>("beneficiary", 0, 0);
 		let beneficiary_bytes = beneficiary.encode();
 		let beneficiary_len = beneficiary_bytes.len();
@@ -770,7 +762,7 @@ benchmarks! {
 		// Restore just moves the trie id from origin to destination and therefore
 		// does not depend on the size of the destination contract. However, to not
 		// trigger any edge case we won't use an empty contract as destination.
-		let mut tombstone = ContractWithStorage::<T>::new(10, T::MaxValueSize::get())?;
+		let mut tombstone = ContractWithStorage::<T>::new(10, T::Schedule::get().limits.payload_len)?;
 		tombstone.evict()?;
 
 		let dest = tombstone.contract.account_id.encode();
@@ -846,14 +838,14 @@ benchmarks! {
 	// `t`: Code size of tombstone contract
 	// `d`: Number of supplied delta keys
 	seal_restore_to_per_code_kb_delta {
-		let c in 0 .. T::MaxCodeSize::get() / 1024;
-		let t in 0 .. T::MaxCodeSize::get() / 1024;
+		let c in 0 .. T::Schedule::get().limits.code_len / 1024;
+		let t in 0 .. T::Schedule::get().limits.code_len / 1024;
 		let d in 0 .. API_BENCHMARK_BATCHES;
 		let mut tombstone = ContractWithStorage::<T>::with_code(
 			WasmModule::<T>::dummy_with_bytes(t * 1024), 0, 0
 		)?;
 		tombstone.evict()?;
-		let delta = create_storage::<T>(d * API_BENCHMARK_BATCH_SIZE, T::MaxValueSize::get())?;
+		let delta = create_storage::<T>(d * API_BENCHMARK_BATCH_SIZE, T::Schedule::get().limits.payload_len)?;
 
 		let dest = tombstone.contract.account_id.encode();
 		let dest_len = dest.len();
@@ -937,7 +929,7 @@ benchmarks! {
 	seal_random {
 		let r in 0 .. API_BENCHMARK_BATCHES;
 		let pages = code::max_pages::<T>();
-		let subject_len = <CurrentSchedule<T>>::get().limits.subject_len;
+		let subject_len = T::Schedule::get().limits.subject_len;
 		assert!(subject_len < 1024);
 		let code = WasmModule::<T>::from(ModuleDefinition {
 			memory: Some(ImportedMemory::max::<T>()),
@@ -993,8 +985,8 @@ benchmarks! {
 	// `t`: Number of topics
 	// `n`: Size of event payload in kb
 	seal_deposit_event_per_topic_and_kb {
-		let t in 0 .. <CurrentSchedule<T>>::get().limits.event_topics;
-		let n in 0 .. T::MaxValueSize::get() / 1024;
+		let t in 0 .. T::Schedule::get().limits.event_topics;
+		let n in 0 .. T::Schedule::get().limits.payload_len / 1024;
 		let mut topics = (0..API_BENCHMARK_BATCH_SIZE)
 			.map(|n| (n * t..n * t + t).map(|i| T::Hashing::hash_of(&i)).collect::<Vec<_>>().encode())
 			.peekable();
@@ -1090,7 +1082,7 @@ benchmarks! {
 	}: call(origin, instance.addr, 0u32.into(), Weight::max_value(), vec![])
 
 	seal_set_storage_per_kb {
-		let n in 0 .. T::MaxValueSize::get() / 1024;
+		let n in 0 .. T::Schedule::get().limits.payload_len / 1024;
 		let key = T::Hashing::hash_of(&1u32).as_ref().to_vec();
 		let key_len = key.len();
 		let code = WasmModule::<T>::from(ModuleDefinition {
@@ -1154,7 +1146,7 @@ benchmarks! {
 				&instance.account_id,
 				&trie_id,
 				key.as_slice().try_into().map_err(|e| "Key has wrong length")?,
-				Some(vec![42; T::MaxValueSize::get() as usize])
+				Some(vec![42; T::Schedule::get().limits.payload_len as usize])
 			)
 			.map_err(|_| "Failed to write to storage during setup.")?;
 		}
@@ -1207,7 +1199,7 @@ benchmarks! {
 	}: call(origin, instance.addr, 0u32.into(), Weight::max_value(), vec![])
 
 	seal_get_storage_per_kb {
-		let n in 0 .. T::MaxValueSize::get() / 1024;
+		let n in 0 .. T::Schedule::get().limits.payload_len / 1024;
 		let key = T::Hashing::hash_of(&1u32).as_ref().to_vec();
 		let key_len = key.len();
 		let code = WasmModule::<T>::from(ModuleDefinition {
@@ -1224,7 +1216,7 @@ benchmarks! {
 				},
 				DataSegment {
 					offset: key_len as u32,
-					value: T::MaxValueSize::get().to_le_bytes().into(),
+					value: T::Schedule::get().limits.payload_len.to_le_bytes().into(),
 				},
 			],
 			call_body: Some(body::repeated(API_BENCHMARK_BATCH_SIZE, &[
@@ -1359,7 +1351,7 @@ benchmarks! {
 	}: call(origin, instance.addr, 0u32.into(), Weight::max_value(), vec![])
 
 	seal_call_per_code_transfer_input_output_kb {
-		let c in 0 .. T::MaxCodeSize::get() / 1024;
+		let c in 0 .. T::Schedule::get().limits.code_len / 1024;
 		let t in 0 .. 1;
 		let i in 0 .. code::max_pages::<T>() * 64;
 		let o in 0 .. (code::max_pages::<T>() - 1) * 64;
@@ -1556,7 +1548,7 @@ benchmarks! {
 	}
 
 	seal_instantiate_per_code_input_output_salt_kb {
-		let c in 0 .. T::MaxCodeSize::get() / 1024;
+		let c in 0 .. T::Schedule::get().limits.code_len / 1024;
 		let i in 0 .. (code::max_pages::<T>() - 1) * 64;
 		let o in 0 .. (code::max_pages::<T>() - 1) * 64;
 		let s in 0 .. (code::max_pages::<T>() - 1) * 64;
@@ -1923,7 +1915,7 @@ benchmarks! {
 
 	// w_br_table_per_entry = w_bench
 	instr_br_table_per_entry {
-		let e in 1 .. <CurrentSchedule<T>>::get().limits.br_table_size;
+		let e in 1 .. T::Schedule::get().limits.br_table_size;
 		let entry: Vec<u32> = [0, 1].iter()
 			.cloned()
 			.cycle()
@@ -1979,7 +1971,7 @@ benchmarks! {
 	// w_call_indrect = w_bench - 3 * w_param
 	instr_call_indirect {
 		let r in 0 .. INSTR_BENCHMARK_BATCHES;
-		let num_elements = <CurrentSchedule<T>>::get().limits.table_size;
+		let num_elements = T::Schedule::get().limits.table_size;
 		use self::code::TableSegment;
 		let mut sbox = Sandbox::from(&WasmModule::<T>::from(ModuleDefinition {
 			// We need to make use of the stack here in order to trigger stack height
@@ -2009,8 +2001,8 @@ benchmarks! {
 	// linearly depend on the amount of parameters to this function.
 	// Please note that this is not necessary with a direct call.
 	instr_call_indirect_per_param {
-		let p in 0 .. <CurrentSchedule<T>>::get().limits.parameters;
-		let num_elements = <CurrentSchedule<T>>::get().limits.table_size;
+		let p in 0 .. T::Schedule::get().limits.parameters;
+		let num_elements = T::Schedule::get().limits.table_size;
 		use self::code::TableSegment;
 		let mut sbox = Sandbox::from(&WasmModule::<T>::from(ModuleDefinition {
 			// We need to make use of the stack here in order to trigger stack height
@@ -2040,7 +2032,7 @@ benchmarks! {
 	// w_local_get = w_bench - 1 * w_param
 	instr_local_get {
 		let r in 0 .. INSTR_BENCHMARK_BATCHES;
-		let max_locals = <CurrentSchedule<T>>::get().limits.stack_height;
+		let max_locals = T::Schedule::get().limits.stack_height;
 		let mut call_body = body::repeated_dyn(r * INSTR_BENCHMARK_BATCH_SIZE, vec![
 			RandomGetLocal(0, max_locals),
 			Regular(Instruction::Drop),
@@ -2057,7 +2049,7 @@ benchmarks! {
 	// w_local_set = w_bench - 1 * w_param
 	instr_local_set {
 		let r in 0 .. INSTR_BENCHMARK_BATCHES;
-		let max_locals = <CurrentSchedule<T>>::get().limits.stack_height;
+		let max_locals = T::Schedule::get().limits.stack_height;
 		let mut call_body = body::repeated_dyn(r * INSTR_BENCHMARK_BATCH_SIZE, vec![
 			RandomI64Repeated(1),
 			RandomSetLocal(0, max_locals),
@@ -2074,7 +2066,7 @@ benchmarks! {
 	// w_local_tee = w_bench - 2 * w_param
 	instr_local_tee {
 		let r in 0 .. INSTR_BENCHMARK_BATCHES;
-		let max_locals = <CurrentSchedule<T>>::get().limits.stack_height;
+		let max_locals = T::Schedule::get().limits.stack_height;
 		let mut call_body = body::repeated_dyn(r * INSTR_BENCHMARK_BATCH_SIZE, vec![
 			RandomI64Repeated(1),
 			RandomTeeLocal(0, max_locals),
@@ -2092,7 +2084,7 @@ benchmarks! {
 	// w_global_get = w_bench - 1 * w_param
 	instr_global_get {
 		let r in 0 .. INSTR_BENCHMARK_BATCHES;
-		let max_globals = <CurrentSchedule<T>>::get().limits.globals;
+		let max_globals = T::Schedule::get().limits.globals;
 		let mut sbox = Sandbox::from(&WasmModule::<T>::from(ModuleDefinition {
 			call_body: Some(body::repeated_dyn(r * INSTR_BENCHMARK_BATCH_SIZE, vec![
 				RandomGetGlobal(0, max_globals),
@@ -2108,7 +2100,7 @@ benchmarks! {
 	// w_global_set = w_bench - 1 * w_param
 	instr_global_set {
 		let r in 0 .. INSTR_BENCHMARK_BATCHES;
-		let max_globals = <CurrentSchedule<T>>::get().limits.globals;
+		let max_globals = T::Schedule::get().limits.globals;
 		let mut sbox = Sandbox::from(&WasmModule::<T>::from(ModuleDefinition {
 			call_body: Some(body::repeated_dyn(r * INSTR_BENCHMARK_BATCH_SIZE, vec![
 				RandomI64Repeated(1),

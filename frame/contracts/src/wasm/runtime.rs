@@ -789,7 +789,7 @@ define_env!(Env, <E: Ext>,
 			ctx.charge_gas(RuntimeToken::CallSurchargeTransfer)?;
 		}
 		let charged = ctx.charge_gas(
-			RuntimeToken::CallSurchargeCodeSize(<E::T as Config>::MaxCodeSize::get())
+			RuntimeToken::CallSurchargeCodeSize(<E::T as Config>::Schedule::get().limits.code_len)
 		)?;
 		let nested_gas_limit = if gas == 0 {
 			ctx.gas_meter.gas_left()
@@ -892,7 +892,7 @@ define_env!(Env, <E: Ext>,
 		let input_data = ctx.read_sandbox_memory(input_data_ptr, input_data_len)?;
 		let salt = ctx.read_sandbox_memory(salt_ptr, salt_len)?;
 		let charged = ctx.charge_gas(
-			RuntimeToken::InstantiateSurchargeCodeSize(<E::T as Config>::MaxCodeSize::get())
+			RuntimeToken::InstantiateSurchargeCodeSize(<E::T as Config>::Schedule::get().limits.code_len)
 		)?;
 		let nested_gas_limit = if gas == 0 {
 			ctx.gas_meter.gas_left()
@@ -961,7 +961,7 @@ define_env!(Env, <E: Ext>,
 			ctx.read_sandbox_memory_as(beneficiary_ptr, beneficiary_len)?;
 
 		let charged = ctx.charge_gas(
-			RuntimeToken::TerminateSurchargeCodeSize(<E::T as Config>::MaxCodeSize::get())
+			RuntimeToken::TerminateSurchargeCodeSize(<E::T as Config>::Schedule::get().limits.code_len)
 		)?;
 		let (result, code_len) = match ctx.ext.terminate(&beneficiary) {
 			Ok(len) => (Ok(()), len),
@@ -1289,7 +1289,7 @@ define_env!(Env, <E: Ext>,
 			delta
 		};
 
-		let max_len = <E::T as Config>::MaxCodeSize::get();
+		let max_len = <E::T as Config>::Schedule::get().limits.code_len;
 		let charged = ctx.charge_gas(RuntimeToken::RestoreToSurchargeCodeSize {
 			caller_code: max_len,
 			tombstone_code: max_len,
@@ -1402,13 +1402,19 @@ define_env!(Env, <E: Ext>,
 		)?)
 	},
 
-	// Prints utf8 encoded string from the data buffer.
-	// Only available on `--dev` chains.
-	// This function may be removed at any time, superseded by a more general contract debugging feature.
+	// Emit a custom debug message.
+	//
+	// This is a no-op if debug message recording is disabled which is always the case
+	// when the code is executing on-chain. The message is interpreted as UTF-8 and
+	// outputted to the console and to the calling RPC client.
+	//
+	// Specifying invalid UTF-8 triggers a trap.
 	[seal0] seal_println(ctx, str_ptr: u32, str_len: u32) => {
-		let data = ctx.read_sandbox_memory(str_ptr, str_len)?;
-		if let Ok(utf8) = core::str::from_utf8(&data) {
-			log::info!(target: "runtime::contracts", "seal_println: {}", utf8);
+		if ctx.ext.append_debug_line("") {
+			let data = ctx.read_sandbox_memory(str_ptr, str_len)?;
+			let msg = core::str::from_utf8(&data)
+				.map_err(|_| <Error<E::T>>::DebugMessageInvalidUTF8)?;
+			ctx.ext.append_debug_line(msg);
 		}
 		Ok(())
 	},

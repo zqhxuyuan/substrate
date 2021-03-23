@@ -341,12 +341,6 @@ impl<'a, T: Config> ContractModule<'a, T> {
 				.get(*type_idx as usize)
 				.ok_or_else(|| "validation: import entry points to a non-existent type")?;
 
-			// We disallow importing `seal_println` unless debug features are enabled,
-			// which should only be allowed on a dev chain
-			if !self.schedule.enable_println && import.field().as_bytes() == b"seal_println" {
-				return Err("module imports `seal_println` but debug features disabled");
-			}
-
 			if !T::ChainExtension::enabled() &&
 				import.field().as_bytes() == b"seal_call_chain_extension"
 			{
@@ -937,7 +931,7 @@ mod tests {
 			Err("module imports a non-existent function")
 		);
 
-		prepare_test!(seal_println_debug_disabled,
+		prepare_test!(seal_println_debug_allowed,
 			r#"
 			(module
 				(import "seal0" "seal_println" (func $seal_println (param i32 i32)))
@@ -946,26 +940,8 @@ mod tests {
 				(func (export "deploy"))
 			)
 			"#,
-			Err("module imports `seal_println` but debug features disabled")
+			Ok(_)
 		);
-
-		#[test]
-		fn seal_println_debug_enabled() {
-			let wasm = wat::parse_str(
-				r#"
-				(module
-					(import "seal0" "seal_println" (func $seal_println (param i32 i32)))
-
-					(func (export "call"))
-					(func (export "deploy"))
-				)
-				"#
-			).unwrap();
-			let mut schedule = Schedule::default();
-			schedule.enable_println = true;
-			let r = do_preparation::<env::Test, crate::tests::Test>(wasm, &schedule);
-			assert_matches::assert_matches!(r, Ok(_));
-		}
 	}
 
 	mod entrypoints {
