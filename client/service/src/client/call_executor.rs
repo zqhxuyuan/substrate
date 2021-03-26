@@ -81,14 +81,19 @@ where
 		Block: BlockT,
 		B: backend::Backend<Block>,
 	{
-		let code = self.wasm_override
+		let code = if let Some(d) = self.wasm_override
 			.as_ref()
 			.map::<sp_blockchain::Result<Option<RuntimeCode>>, _>(|o| {
 				let spec = self.runtime_version(id)?.spec_version;
 				Ok(o.get(&spec, onchain_code.heap_pages))
 			})
 			.transpose()?
-			.flatten()
+			.flatten() {
+			log::info!("using WASM override for block {}", id)
+		} else {
+			log::info!("No WASM override available for block {}, using onchain code", id))
+			onchain_code
+		}
 			.unwrap_or(onchain_code);
 
 		Ok(code)

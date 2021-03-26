@@ -91,17 +91,6 @@ impl Subscriber for BlockSubscriber {
 
 	fn new_span(&self, attrs: &Attributes<'_>) -> Id {
 		let id = self.next_id.fetch_add(1, Ordering::Relaxed);
-
-
-		// Does not show up
-		// trace!(target: "frame",
-		// 	message="Subscriber::new_span",
-		// 	span_id=id,
-		// );
-
-		// Does not show up
-		// log::info!("\n Subscriber::new_span (id: {})", id);
-
 		let mut values = Values::default();
 		attrs.record(&mut values);
 		let parent_id = attrs.parent()
@@ -119,20 +108,12 @@ impl Subscriber for BlockSubscriber {
 			values: Values::default(),
 		};
 
-		// Does not show up
-		// log::info!("\nspan id: {:#?}, span name: {}, span target: {}\n",
-		// 	id, attrs.metadata().name().to_owned(), attrs.metadata().target().to_owned()
-		// );
-
 		let id = Id::from_u64(id);
 		self.spans.lock().insert(id.clone(), span);
 		id
 	}
 
 	fn record(&self, span: &Id, values: &Record<'_>) {
-		// Does not show up
-		// log::info!("\nSubscriber::record (span id {:#?})", span);
-
 		let mut span_data = self.spans.lock();
 		if let Some(s) = span_data.get_mut(span) {
 			values.record(&mut s.values);
@@ -144,10 +125,6 @@ impl Subscriber for BlockSubscriber {
 	}
 
 	fn event(&self, event: &tracing_core::Event<'_>) {
-		// Does not show up
-		// log::info!("\nSubscriber::event (event {:#?})", event);
-
-
 		let mut values = crate::Values::default();
 		event.record(&mut values);
 		let parent_id = event.parent()
@@ -165,9 +142,6 @@ impl Subscriber for BlockSubscriber {
 	}
 
 	fn enter(&self, id: &Id) {
-		// Does not show up
-		// log::info!("\nSubscriber::enter (Id: {:#?})", id);
-
 		self.current_span.enter(id.clone());
 		// doesn't do anything
 		let mut span_data = self.spans.lock();
@@ -177,9 +151,6 @@ impl Subscriber for BlockSubscriber {
 	}
 
 	fn exit(&self, span: &Id) {
-		// Does not show up
-		// log::info!("\nSubscriber::exit (Id {:#?})", span);
-
 		if let Some(s) = self.spans.lock().get_mut(span) {
 			self.current_span.exit();
 			s.exited.push(Instant::now() - self.timestamp)
@@ -229,38 +200,15 @@ impl<Block, Client> BlockExecutor<Block, Client>
 		let sub = BlockSubscriber::new(targets, spans, events);
 		let dispatch = Dispatch::new(sub);
 
-		// Doesn't show up
-		let span = tracing::info_span!(
-			target: TRACE_TARGET,
-			"yolo span",
-		);
-		let _enter = span.enter();
-		// Doesn't show up
-		trace!(target: "frame", // debug
-			message="yolo event",
-		);
-
-
 		// Shows up
 		log::info!("\nBlockExecutor::trace_block pre dispatcher");
 
 		if let Err(e) = dispatcher::with_default(&dispatch, || {
-
-			// Does not show up
-			log::info!("\nBlockExecutor::trace_block (target {})", TRACE_TARGET);
-
 			let span = tracing::info_span!(
 				target: TRACE_TARGET,
 				"trace_block",
 			);
 			let _enter = span.enter();
-			// Does not show up
-			log::info!("\nBlockExecutor::trace_block span entered");
-
-			// Shows up in events
-			trace!(target: "frame", // debug
-				message="First event in BlockExecutor::trace_block span",
-			);
 			self.client.runtime_api().execute_block(&parent_id, block)
 		}) {
 			return Err(format!("Error executing block: {:?}", e));
@@ -274,7 +222,6 @@ impl<Block, Client> BlockExecutor<Block, Client>
 			.map(|(_, s)| s.into())
 			.into_iter()
 			.map(|s| {
-				// log::info!("BlockExecutor::trace_block {:#?}", s);
 				s
 			})
 			// First filter out any spans that were never entered
@@ -297,10 +244,6 @@ impl<Block, Client> BlockExecutor<Block, Client>
 			spans,
 			events,
 		};
-
-		// Shows up
-		log::info!("BlockExecutor::trace_block exiting...");
-
 		Ok(block_traces)
 	}
 }
