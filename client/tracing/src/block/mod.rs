@@ -17,9 +17,10 @@
 //! Utilities for tracing block execution
 
 use std::{collections::HashMap, sync::{Arc, atomic::{AtomicU64, Ordering}}};
+use std::time::Instant;
 
 use parking_lot::Mutex;
-use tracing::{Dispatch, dispatcher, Subscriber};
+use tracing::{Dispatch, dispatcher, Subscriber, Level, span::{Attributes, Record, Id}};
 use tracing_subscriber::CurrentSpan;
 
 use sc_client_api::BlockBackend;
@@ -32,16 +33,8 @@ use sp_runtime::{
 use sp_rpc::tracing::{BlockTrace, Span, Event, Values};
 use sp_tracing::{WASM_NAME_KEY, WASM_TARGET_KEY, WASM_TRACE_IDENTIFIER};
 
-use tracing_core::{Level, span::{Attributes, Record, Id}};
-use wasm_timer::Instant;
-
-// Stuff for debugging
-use log;
-use tracing::trace;
-
 // Default to only pallet, frame support and state related traces
-// const DEFAULT_TARGETS: &'static str = "pallet,frame,state";
-const DEFAULT_TARGETS: &'static str = "";
+const DEFAULT_TARGETS: &'static str = "pallet,frame,state";
 const TRACE_TARGET: &'static str = "block_trace";
 
 struct BlockSubscriber {
@@ -79,14 +72,13 @@ impl BlockSubscriber {
 }
 
 impl Subscriber for BlockSubscriber {
-	fn enabled(&self, metadata: &tracing_core::Metadata<'_>) -> bool {
+	fn enabled(&self, metadata: &tracing::Metadata<'_>) -> bool {
 		for (target, level) in &self.targets {
 			if metadata.target().starts_with(target.as_str()) && metadata.level() <= level {
 				return true;
 			}
 		}
 		false
-		// true
 	}
 
 	fn new_span(&self, attrs: &Attributes<'_>) -> Id {
@@ -105,9 +97,8 @@ impl Subscriber for BlockSubscriber {
 			line: attrs.metadata().line().unwrap_or(0),
 			entered: vec![],
 			exited: vec![],
-			values: Values::default(),
+			values,
 		};
-
 		let id = Id::from_u64(id);
 		self.spans.lock().insert(id.clone(), span);
 		id
@@ -124,7 +115,7 @@ impl Subscriber for BlockSubscriber {
 		// Not currently used
 	}
 
-	fn event(&self, event: &tracing_core::Event<'_>) {
+	fn event(&self, event: &tracing::Event<'_>) {
 		let mut values = crate::Values::default();
 		event.record(&mut values);
 		let parent_id = event.parent()
@@ -143,7 +134,6 @@ impl Subscriber for BlockSubscriber {
 
 	fn enter(&self, id: &Id) {
 		self.current_span.enter(id.clone());
-		// doesn't do anything
 		let mut span_data = self.spans.lock();
 		if let Some(span) = span_data.get_mut(&id) {
 			span.entered.push(Instant::now() - self.timestamp);
@@ -200,9 +190,6 @@ impl<Block, Client> BlockExecutor<Block, Client>
 		let sub = BlockSubscriber::new(targets, spans, events);
 		let dispatch = Dispatch::new(sub);
 
-		// Shows up
-		log::info!("\nBlockExecutor::trace_block pre dispatcher");
-
 		if let Err(e) = dispatcher::with_default(&dispatch, || {
 			let span = tracing::info_span!(
 				target: TRACE_TARGET,
@@ -213,29 +200,22 @@ impl<Block, Client> BlockExecutor<Block, Client>
 		}) {
 			return Err(format!("Error executing block: {:?}", e));
 		}
-
-		let sub = dispatch.downcast_ref::<BlockSubscriber>()
+		let block_subscriber = dispatch.downcast_ref::<BlockSubscriber>()
 			.ok_or("Cannot downcast Dispatch to BlockSubscriber after tracing block")?;
-		let mut spans: Vec<Span> = sub.spans
+		let mut spans: Vec<Span> = block_subscriber.spans
 			.lock()
 			.drain()
 			.map(|(_, s)| s.into())
 			.into_iter()
-			.map(|s| {
-				s
-			})
-			// First filter out any spans that were never entered
+			// Filter out any spans that were never entered
 			.filter(|s: &Span| !s.entered.is_empty())
 			// Patch wasm identifiers
 			.filter_map(|s| patch_and_filter(s, targets))
 			.collect();
 
-		// Shows up
-		log::info!("BlockExecutor::trace_block (spans.len() {})", spans.len());
 		spans.sort_by(|a, b| a.entered[0].cmp(&b.entered[0]));
 
-		let events: Vec<Event> = sub.events.lock().drain(..).map(|s| s.into()).collect();
-		log::info!("BlockExecutor::trace_block (events.len() {})", events.len());
+		let events = block_subscriber.events.lock().drain(..).map(|s| s.into()).collect();
 
 		let block_traces = BlockTrace {
 			block_hash: id.to_string(),

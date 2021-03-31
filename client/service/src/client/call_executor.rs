@@ -34,6 +34,8 @@ use sp_api::{ProofRecorder, InitializeBlock, StorageTransactionCache};
 use sc_client_api::{backend, call_executor::CallExecutor};
 use super::{client::ClientConfig, wasm_override::WasmOverride};
 
+use log::debug;
+
 /// Call executor that executes methods locally, querying all required
 /// data from local backend.
 pub struct LocalCallExecutor<B, E> {
@@ -89,12 +91,12 @@ where
 			})
 			.transpose()?
 			.flatten() {
-			log::info!("using WASM override for block {}", id)
+			debug!(target: "wasm_overrides", "using WASM override for block {}", id);
+			d
 		} else {
-			log::info!("No WASM override available for block {}, using onchain code", id))
+			debug!(target: "wasm_overrides", "No WASM override available for block {}, using onchain code", id);
 			onchain_code
-		}
-			.unwrap_or(onchain_code);
+		};
 
 		Ok(code)
 	}
@@ -372,6 +374,7 @@ mod tests {
 			&substrate_test_runtime_client::GenesisParameters::default().genesis_storage(),
 			None,
 			Box::new(TaskExecutor::new()),
+			None,
 			None,
 			Default::default(),
 		).expect("Creates a client");
