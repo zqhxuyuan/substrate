@@ -24,7 +24,6 @@ use crate::{
 	utils::{interval, LruHashSet},
 };
 
-use bytes::Bytes;
 use codec::{Decode, DecodeAll, Encode};
 use futures::{channel::oneshot, prelude::*};
 use notifications::{Notifications, NotificationsOut};
@@ -55,6 +54,7 @@ use std::convert::TryFrom as _;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 use std::{io, iter, num::NonZeroUsize, pin::Pin, task::Poll, time};
+pub use notifications::CountBytes;
 
 mod notifications;
 
@@ -1152,7 +1152,7 @@ pub enum CustomMessageOutcome<B: BlockT> {
 	/// Notification protocols have been closed with a remote.
 	NotificationStreamClosed { remote: PeerId, protocol: Cow<'static, str> },
 	/// Messages have been received on one or more notifications protocols.
-	NotificationsReceived { remote: PeerId, messages: Vec<(Cow<'static, str>, Bytes)> },
+	NotificationsReceived { remote: PeerId, messages: Vec<(Cow<'static, str>, CountBytes)> },
 	/// A new block request must be emitted.
 	BlockRequest {
 		target: PeerId,
@@ -1487,7 +1487,7 @@ impl<B: BlockT> NetworkBehaviour for Protocol<B> {
 						let protocol_name = self.notification_protocols[usize::from(set_id) - NUM_HARDCODED_PEERSETS].clone();
 						CustomMessageOutcome::NotificationsReceived {
 							remote: peer_id,
-							messages: vec![(protocol_name, message.freeze())],
+							messages: vec![(protocol_name, message)],
 						}
 					}
 				}

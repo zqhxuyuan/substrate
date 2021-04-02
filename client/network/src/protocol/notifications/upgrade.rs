@@ -24,6 +24,7 @@ pub use self::notifications::{
 	NotificationsOutSubstream,
 	NotificationsHandshakeError,
 	NotificationsOutError,
+	CountBytes,
 };
 
 mod collec;

@@ -203,7 +203,7 @@ impl<B: BlockT> Future for GossipEngine<B> {
 							Event::NotificationsReceived { remote, messages } => {
 								let messages = messages.into_iter().filter_map(|(engine, data)| {
 									if engine == this.protocol {
-										Some(data.to_vec())
+										Some(data.as_ref().to_vec())
 									} else {
 										None
 									}

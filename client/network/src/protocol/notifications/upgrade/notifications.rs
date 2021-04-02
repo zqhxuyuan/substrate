@@ -36,7 +36,6 @@
 /// encouraged but not required to open a substream to A as well.
 ///
 
-use bytes::BytesMut;
 use futures::prelude::*;
 use asynchronous_codec::Framed;
 use libp2p::core::{UpgradeInfo, InboundUpgrade, OutboundUpgrade, upgrade};
@@ -222,10 +221,64 @@ where TSubstream: AsyncRead + AsyncWrite + Unpin,
 	}
 }
 
+
+static BYTES: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+static COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+static TOTAL_COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+#[derive(Debug)]
+pub struct CountBytes(Vec<u8>);
+
+impl CountBytes {
+	pub fn new(b: &[u8]) -> Self {
+		BYTES.fetch_add(b.len(), std::sync::atomic::Ordering::Relaxed);
+		COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+		TOTAL_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+		CountBytes(b.to_vec())
+	}
+
+	pub fn total() -> (usize, usize, usize) {
+		(
+			BYTES.load(std::sync::atomic::Ordering::Relaxed),
+			COUNT.load(std::sync::atomic::Ordering::Relaxed),
+			TOTAL_COUNT.load(std::sync::atomic::Ordering::Relaxed),
+		)
+	}
+
+	pub fn len(&self) -> usize {
+		self.0.len()
+	}
+}
+
+impl Drop for CountBytes {
+	fn drop(&mut self) {
+		BYTES.fetch_sub(self.0.len(), std::sync::atomic::Ordering::Relaxed);
+		COUNT.fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+	}
+}
+
+impl Clone for CountBytes {
+	fn clone(&self) -> Self {
+		CountBytes::new(&self.0)
+	}
+}
+
+impl AsRef<[u8]> for CountBytes {
+	fn as_ref(&self) -> &[u8] {
+		self.0.as_ref()
+	}
+}
+
+impl std::borrow::Borrow<[u8]> for CountBytes {
+	fn borrow(&self) -> &[u8] {
+		self.0.borrow()
+	}
+}
+
 impl<TSubstream> Stream for NotificationsInSubstream<TSubstream>
 where TSubstream: AsyncRead + AsyncWrite + Unpin,
 {
-	type Item = Result<BytesMut, io::Error>;
+	type Item = Result<CountBytes, io::Error>;
 
 	fn poll_next(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Option<Self::Item>> {
 		let mut this = self.project();
@@ -267,7 +320,7 @@ where TSubstream: AsyncRead + AsyncWrite + Unpin,
 							NotificationsInSubstreamHandshake::ClosingInResponseToRemote,
 						Poll::Ready(Some(msg)) => {
 							*this.handshake = NotificationsInSubstreamHandshake::Sent;
-							return Poll::Ready(Some(msg))
+							return Poll::Ready(Some(msg.map(|msg| CountBytes::new(&msg))))
 						},
 						Poll::Pending => {
 							*this.handshake = NotificationsInSubstreamHandshake::Sent;

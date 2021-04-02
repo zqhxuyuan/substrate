@@ -25,7 +25,7 @@ use crate::{
 	ObservedRole, DhtEvent,
 };
 
-use bytes::Bytes;
+pub use crate::protocol::CountBytes;
 use futures::{channel::oneshot, stream::StreamExt};
 use libp2p::NetworkBehaviour;
 use libp2p::core::{Multiaddr, PeerId, PublicKey};
@@ -158,7 +158,7 @@ pub enum BehaviourOut<B: BlockT> {
 		/// Node we received the message from.
 		remote: PeerId,
 		/// Concerned protocol and associated message.
-		messages: Vec<(Cow<'static, str>, Bytes)>,
+		messages: Vec<(Cow<'static, str>, CountBytes)>,
 	},
 
 	/// Now connected to a new peer for syncing purposes.

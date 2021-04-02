@@ -64,7 +64,6 @@ use crate::protocol::notifications::{
 	},
 };
 
-use bytes::BytesMut;
 use libp2p::core::{ConnectedPoint, PeerId, upgrade::{InboundUpgrade, OutboundUpgrade}};
 use libp2p::swarm::{
 	ProtocolsHandler, ProtocolsHandlerEvent,
@@ -83,6 +82,7 @@ use log::error;
 use parking_lot::{Mutex, RwLock};
 use std::{borrow::Cow, collections::VecDeque, mem, pin::Pin, str, sync::Arc, task::{Context, Poll}, time::Duration};
 use wasm_timer::Instant;
+pub use crate::protocol::notifications::upgrade::CountBytes;
 
 /// Number of pending notifications in asynchronous contexts.
 /// See [`NotificationsSink::reserve_notification`] for context.
@@ -319,7 +319,7 @@ pub enum NotifsHandlerOut {
 		/// Index of the protocol in the list of protocols passed at initialization.
 		protocol_index: usize,
 		/// Message that has been received.
-		message: BytesMut,
+		message: CountBytes,
 	},
 }
 

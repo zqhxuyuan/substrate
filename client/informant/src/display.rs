@@ -20,7 +20,7 @@ use crate::OutputFormat;
 use ansi_term::Colour;
 use log::info;
 use sc_client_api::ClientInfo;
-use sc_network::{NetworkStatus, SyncState};
+use sc_network::{NetworkStatus, SyncState, CountBytes};
 use sp_runtime::traits::{Block as BlockT, CheckedDiv, NumberFor, Saturating, Zero};
 use std::{
 	convert::{TryFrom, TryInto},
@@ -103,10 +103,11 @@ impl<B: BlockT> InformantDisplay<B> {
 			),
 		};
 
+		let (g_bytes, g_packets, g_total) = CountBytes::total();
 		if self.format.enable_color {
 			info!(
 				target: "substrate",
-				"{} {}{} ({} peers), best: #{} ({}), finalized #{} ({}), {} {}",
+				"{} {}{} ({} peers), best: #{} ({}), finalized #{} ({}), {} {}, gossip={} ({}/{})",
 				level,
 				Colour::White.bold().paint(&status),
 				target,
@@ -117,6 +118,7 @@ impl<B: BlockT> InformantDisplay<B> {
 				info.chain.finalized_hash,
 				Colour::Green.paint(format!("⬇ {}", TransferRateFormat(avg_bytes_per_sec_inbound))),
 				Colour::Red.paint(format!("⬆ {}", TransferRateFormat(avg_bytes_per_sec_outbound))),
+				g_bytes, g_packets, g_total,
 			)
 		} else {
 			info!(

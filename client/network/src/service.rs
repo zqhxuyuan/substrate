@@ -105,6 +105,7 @@ use std::{
 };
 
 pub use behaviour::{ResponseFailure, InboundFailure, RequestFailure, OutboundFailure, IfDisconnected};
+pub use protocol::CountBytes;
 
 mod metrics;
 mod out_events;

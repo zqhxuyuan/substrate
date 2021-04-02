@@ -21,6 +21,7 @@
 
 pub use self::behaviour::{Notifications, NotificationsOut};
 pub use self::handler::{NotifsHandlerError, NotificationsSink, Ready};
+pub use self::handler::{CountBytes};
 
 mod behaviour;
 mod handler;

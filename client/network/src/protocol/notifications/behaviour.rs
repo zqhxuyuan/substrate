@@ -20,7 +20,6 @@ use crate::protocol::notifications::{
 	handler::{NotificationsSink, NotifsHandlerProto, NotifsHandlerOut, NotifsHandlerIn}
 };
 
-use bytes::BytesMut;
 use fnv::FnvHashMap;
 use futures::prelude::*;
 use libp2p::core::{ConnectedPoint, Multiaddr, PeerId, connection::ConnectionId};
@@ -39,6 +38,7 @@ use std::task::{Context, Poll};
 use std::{borrow::Cow, cmp, collections::{hash_map::Entry, VecDeque}};
 use std::{error, mem, pin::Pin, str, sync::Arc, time::Duration};
 use wasm_timer::Instant;
+pub use crate::protocol::notifications::handler::CountBytes;
 
 /// Network behaviour that handles opening substreams for custom protocols with other peers.
 ///
@@ -350,7 +350,7 @@ pub enum NotificationsOut {
 		/// Peerset set ID the substream is tied to.
 		set_id: sc_peerset::SetId,
 		/// Message that has been received.
-		message: BytesMut,
+		message: CountBytes,
 	},
 }
 
