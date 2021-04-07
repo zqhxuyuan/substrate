@@ -18,6 +18,7 @@ members = [
 	"bin/utils/chain-spec-builder",
 	"bin/utils/subkey",
 	"client/api",
+	"client/archive",
 	"client/authority-discovery",
 	"client/basic-authorship",
 	"client/block-builder",

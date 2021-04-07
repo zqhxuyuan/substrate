@@ -111,17 +111,22 @@ pub fn new_partial(
 
 	let inherent_data_providers = sp_inherents::InherentDataProviders::new();
 
-	let import_queue = sc_consensus_babe::import_queue(
-		babe_link.clone(),
-		block_import.clone(),
-		Some(Box::new(justification_import)),
-		client.clone(),
-		select_chain.clone(),
-		inherent_data_providers.clone(),
+	// let import_queue = sc_consensus_babe::import_queue(
+	// 	babe_link.clone(),
+	// 	block_import.clone(),
+	// 	Some(Box::new(justification_import)),
+	// 	client.clone(),
+	// 	select_chain.clone(),
+	// 	inherent_data_providers.clone(),
+	// 	&task_manager.spawn_essential_handle(),
+	// 	config.prometheus_registry(),
+	// 	sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
+	// 	telemetry.as_ref().map(|x| x.handle()),
+	// )?;
+
+	let import_queue = sc_archive::import_queue2(
+		Box::new(client.clone()),
 		&task_manager.spawn_essential_handle(),
-		config.prometheus_registry(),
-		sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
-		telemetry.as_ref().map(|x| x.handle()),
 	)?;
 
 	let import_setup = (block_import, grandpa_link, babe_link);
