@@ -482,65 +482,13 @@ impl<D: NativeExecutionDispatch + 'static> CodeExecutor for NativeExecutor<D> {
 			ext,
 			false,
 			|module, instance, onchain_version, mut ext| {
-				let onchain_version = onchain_version.ok_or_else(
-					|| Error::ApiError("Unknown version".into())
-				)?;
-
-				let can_call_with = onchain_version.can_call_with(&self.native_version.runtime_version);
-
-				match (
-					use_native,
-					can_call_with,
-					native_call,
-				) {
-					(_, false, _) | (false, _, _) => {
-						if !can_call_with {
-							trace!(
-								target: "executor",
-								"Request for native execution failed (native: {}, chain: {})",
-								self.native_version.runtime_version,
-								onchain_version,
-							);
-						}
-
-						with_externalities_safe(
-							&mut **ext,
-							move || {
-								RuntimeInstanceSpawn::register_on_externalities(module.clone());
-								instance.call_export(method, data).map(NativeOrEncoded::Encoded)
-							}
-						)
-					},
-					(true, true, Some(call)) => {
-						trace!(
-							target: "executor",
-							"Request for native execution with native call succeeded \
-							(native: {}, chain: {}).",
-							self.native_version.runtime_version,
-							onchain_version,
-						);
-
-						used_native = true;
-						let res = with_externalities_safe(&mut **ext, move || (call)())
-							.and_then(|r| r
-								.map(NativeOrEncoded::Native)
-								.map_err(Error::ApiError)
-							);
-
-						Ok(res)
+				with_externalities_safe(
+					&mut **ext,
+					move || {
+						RuntimeInstanceSpawn::register_on_externalities(module.clone());
+						instance.call_export(method, data).map(NativeOrEncoded::Encoded)
 					}
-					_ => {
-						trace!(
-							target: "executor",
-							"Request for native execution succeeded (native: {}, chain: {})",
-							self.native_version.runtime_version,
-							onchain_version
-						);
-
-						used_native = true;
-						Ok(D::dispatch(&mut **ext, method, data).map(NativeOrEncoded::Encoded))
-					}
-				}
+				)
 			}
 		);
 		(result, used_native)

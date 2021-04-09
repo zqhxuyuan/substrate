@@ -35,6 +35,12 @@ use sc_client_api::{ExecutorProvider, RemoteBackend};
 use node_executor::Executor;
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_consensus_babe::SlotProportion;
+use log::info;
+
+// use sc_executor::native_executor_instance;
+// use polkadot_service::kusama_runtime as ksm_rt;
+// use polkadot_service::polkadot_runtime as dot_rt;
+// use polkadot_service::westend_runtime as wnd_rt;
 
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
@@ -42,6 +48,27 @@ type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullGrandpaBlockImport =
 	grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
 type LightClient = sc_service::TLightClient<Block, RuntimeApi, Executor>;
+
+// native_executor_instance!(
+// 	pub PolkadotExecutor,
+// 	dot_rt::api::dispatch,
+// 	dot_rt::native_version,
+// 	sp_io::SubstrateHostFunctions,
+// );
+//
+// native_executor_instance!(
+// 	pub KusamaExecutor,
+// 	ksm_rt::api::dispatch,
+// 	ksm_rt::native_version,
+// 	sp_io::SubstrateHostFunctions,
+// );
+//
+// native_executor_instance!(
+// 	pub WestendExecutor,
+// 	wnd_rt::api::dispatch,
+// 	wnd_rt::native_version,
+// 	sp_io::SubstrateHostFunctions,
+// );
 
 pub fn new_partial(
 	config: &Configuration,
@@ -71,6 +98,11 @@ pub fn new_partial(
 			Ok((worker, telemetry))
 		})
 		.transpose()?;
+
+	let short_name = config.chain_spec.id().clone().to_ascii_lowercase();
+	info!("chain spec name:{}", short_name.as_str());
+
+	// passing different RuntimeApi implementation
 
 	let (client, backend, keystore_container, task_manager) =
 		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
@@ -111,22 +143,17 @@ pub fn new_partial(
 
 	let inherent_data_providers = sp_inherents::InherentDataProviders::new();
 
-	// let import_queue = sc_consensus_babe::import_queue(
-	// 	babe_link.clone(),
-	// 	block_import.clone(),
-	// 	Some(Box::new(justification_import)),
-	// 	client.clone(),
-	// 	select_chain.clone(),
-	// 	inherent_data_providers.clone(),
-	// 	&task_manager.spawn_essential_handle(),
-	// 	config.prometheus_registry(),
-	// 	sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
-	// 	telemetry.as_ref().map(|x| x.handle()),
-	// )?;
-
-	let import_queue = sc_archive::import_queue2(
-		Box::new(client.clone()),
+	let import_queue = sc_consensus_babe::import_queue(
+		babe_link.clone(),
+		block_import.clone(),
+		Some(Box::new(justification_import)),
+		client.clone(),
+		select_chain.clone(),
+		inherent_data_providers.clone(),
 		&task_manager.spawn_essential_handle(),
+		config.prometheus_registry(),
+		sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone()),
+		telemetry.as_ref().map(|x| x.handle()),
 	)?;
 
 	let import_setup = (block_import, grandpa_link, babe_link);

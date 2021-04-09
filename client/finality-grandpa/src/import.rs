@@ -18,7 +18,7 @@
 
 use std::{sync::Arc, collections::HashMap};
 
-use log::debug;
+use log::{info, debug};
 use parity_scale_codec::Encode;
 
 use sp_blockchain::{BlockStatus, well_known_cache_keys};

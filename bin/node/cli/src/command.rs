@@ -56,6 +56,9 @@ impl SubstrateCli for Cli {
 				"local" => Box::new(chain_spec::local_testnet_config()),
 				"fir" | "flaming-fir" => Box::new(chain_spec::flaming_fir_config()?),
 				"staging" => Box::new(chain_spec::staging_testnet_config()),
+				// "ksm" | "kusama" => Box::new(polkadot_service::chain_spec::kusama_config()?),
+				// "dot" | "polkadot" => Box::new(polkadot_service::chain_spec::polkadot_config()?),
+				// "wnd" | "westend" => Box::new(polkadot_service::chain_spec::westend_config()?),
 				path => Box::new(chain_spec::ChainSpec::from_json_file(
 					std::path::PathBuf::from(path),
 				)?),
