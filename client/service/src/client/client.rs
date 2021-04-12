@@ -1638,42 +1638,6 @@ use sp_core::OpaqueMetadata;
 // 	}
 // }
 
-// pub const VERSION: RuntimeVersion = RuntimeVersion {
-// 	spec_name: create_runtime_str!("archive"),
-// 	impl_name: create_runtime_str!("patract-archive"),
-// 	authoring_version: 1,
-// 	spec_version: 2,
-// 	impl_version: 2,
-// 	apis: Default::default(),
-// 	transaction_version: 1,
-// };
-//
-// fn version() -> RuntimeVersion {
-// 	VERSION
-// }
-//
-// impl_runtime_apis! {
-// 	impl sp_api::Core<Block> for MockRuntimeAPi {
-// 		fn version() -> RuntimeVersion {
-// 			version()
-// 		}
-//
-// 		fn execute_block(block: Block) {
-// 			system::execute_block(block);
-// 		}
-//
-// 		fn initialize_block(header: &<Block as BlockT>::Header) {
-// 			system::initialize_block(header)
-// 		}
-// 	}
-//
-// 	impl sp_api::Metadata<Block> for MockRuntimeAPi {
-// 		fn metadata() -> OpaqueMetadata {
-// 			unimplemented!()
-// 		}
-// 	}
-// }
-
 // construct_runtime!(
 // 	pub enum MockRuntimeAPi where
 // 		Block = Block,
@@ -1685,16 +1649,16 @@ use sp_core::OpaqueMetadata;
 // 	}
 // );
 
-impl<B, E, Block> ProvideRuntimeApi<Block> for Client<B, E, Block> where
-	B: backend::Backend<Block>,
-	E: CallExecutor<Block, Backend = B> + Send + Sync,
-	Block: BlockT,
-{
-	type Api = MockRuntimeAPi;
-	fn runtime_api<'a>(&'a self) -> ApiRef<'a, Self::Api> {
-		MockRuntimeAPi {}.into()
-	}
-}
+// impl<B, E, Block> ProvideRuntimeApi<Block> for Client<B, E, Block> where
+// 	B: backend::Backend<Block>,
+// 	E: CallExecutor<Block, Backend = B> + Send + Sync,
+// 	Block: BlockT,
+// {
+// 	type Api = MockRuntimeAPi;
+// 	fn runtime_api<'a>(&'a self) -> ApiRef<'a, Self::Api> {
+// 		MockRuntimeAPi {}.into()
+// 	}
+// }
 
 // the type parameter `RA` is not constrained by the impl trait, self type, or predicates
 // RA ^^ unconstrained type parameter
