@@ -27,14 +27,14 @@ use std::str::FromStr;
 
 impl InspectCmd {
 	/// Run the inspect command, passing the inspector.
-	pub fn run<B, RA, EX>(&self, config: Configuration) -> Result<()>
+	pub fn run<B, EX>(&self, config: Configuration) -> Result<()>
 	where
 		B: Block,
 		B::Hash: FromStr,
-		RA: Send + Sync + 'static,
+		// RA: Send + Sync + 'static,
 		EX: NativeExecutionDispatch + 'static,
 	{
-		let client = new_full_client::<B, RA, EX>(&config, None)?;
+		let client = new_full_client::<B, EX>(&config, None)?;
 		let inspect = Inspector::<B>::new(client);
 
 		match &self.command {
