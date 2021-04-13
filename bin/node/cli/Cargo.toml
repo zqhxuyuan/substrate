@@ -63,6 +63,9 @@ sp-io = { version = "3.0.0", path = "../../../primitives/io" }
 sp-consensus = { version = "0.9.0", path = "../../../primitives/consensus/common" }
 sp-transaction-pool = { version = "3.0.0", path = "../../../primitives/transaction-pool" }
 
+sc-consensus-aura = { version = "0.9.0", path = "../../../client/consensus/aura" }
+sp-consensus-aura = { version = "0.9.0", path = "../../../primitives/consensus/aura" }
+
 # client dependencies
 sc-archive = { version = "0.9.0", path = "../../../client/archive" }
 sc-client-api = { version = "3.0.0", path = "../../../client/api" }
@@ -130,6 +133,8 @@ sp-trie = { version = "3.0.0", default-features = false, path = "../../../primit
 sc-keystore = { version = "3.0.0", path = "../../../client/keystore" }
 sc-consensus = { version = "0.9.0", path = "../../../client/consensus/common" }
 sc-consensus-babe = { version = "0.9.0", path = "../../../client/consensus/babe" }
+sc-consensus-aura = { version = "0.9.0", path = "../../../client/consensus/aura" }
+#sp-consensus-aura = { version = "0.9.0", path = "../../../primitives/consensus/aura" }
 sc-consensus-epochs = { version = "0.9.0", path = "../../../client/consensus/epochs" }
 sc-service-test = { version = "2.0.0", path = "../../../client/service/test" }
 futures = "0.3.9"

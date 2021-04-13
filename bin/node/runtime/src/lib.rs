@@ -85,6 +85,7 @@ pub use pallet_staking::StakerStatus;
 /// Implementations of some helper traits passed into runtime modules as associated types.
 pub mod impls;
 // use impls::Author;
+// use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 
 /// Constant values used within the runtime.
 pub mod constants;
@@ -124,6 +125,8 @@ pub const BABE_GENESIS_EPOCH_CONFIG: sp_consensus_babe::BabeEpochConfiguration =
 		c: PRIMARY_PROBABILITY,
 		allowed_slots: sp_consensus_babe::AllowedSlots::PrimaryAndSecondaryPlainSlots
 	};
+
+pub const SLOT_DURATION: u64 = MILLISECS_PER_BLOCK;
 
 /// Native version.
 #[cfg(any(feature = "std", test))]
@@ -234,6 +237,10 @@ impl pallet_babe::Config for Runtime {
 	type WeightInfo = ();
 }
 
+// impl pallet_aura::Config for Runtime {
+// 	type AuthorityId = AuraId;
+// }
+
 parameter_types! {
 	pub const ExistentialDeposit: Balance = 1 * DOLLARS;
 	// For weight estimation, we assume that the most locks on an individual account will be 50.
@@ -316,6 +323,7 @@ construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Utility: pallet_utility::{Pallet, Call, Event},
+		// Aura: pallet_aura::{Pallet, Config<T>},
 		Babe: pallet_babe::{Pallet, Call, Storage, Config, ValidateUnsigned},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
@@ -445,6 +453,20 @@ impl_runtime_apis! {
 			None
 		}
 	}
+
+	// TODO: run with polkadot json:
+	//      Running `target/debug/substrate --chain=/Users/zqh/code/polkadot/node/service/res/polkadot.json -d /tmp/sub --execution=NativeElseWasm`
+	// Error: Service(Client(RuntimeApiError(Application(Execution(Wasmi(Function("Module doesn\'t have export AuraApi_slot_duration")))))))
+	// impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
+	// 	fn slot_duration() -> sp_consensus_aura::SlotDuration {
+	// 		// sp_consensus_aura::SlotDuration::from_millis(Aura::slot_duration())
+	// 		unimplemented!()
+	// 	}
+	//
+	// 	fn authorities() -> Vec<AuraId> {
+	// 		Aura::authorities()
+	// 	}
+	// }
 
 	impl sp_consensus_babe::BabeApi<Block> for Runtime {
 		fn configuration() -> sp_consensus_babe::BabeGenesisConfiguration {
