@@ -61,12 +61,6 @@ pub fn new_full(mut config: Configuration) -> Result<TaskManager, ServiceError> 
 			block_announce_validator_builder: None,
 		})?;
 
-	if config.offchain_worker.enabled {
-		sc_service::build_offchain_workers(
-			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
-		);
-	}
-
 	let rpc_extensions_builder = {
 		let client = client.clone();
 		let pool = transaction_pool.clone();
@@ -303,12 +297,6 @@ pub fn new_full1(mut config: Configuration) -> Result<TaskManager, ServiceError>
 			block_announce_validator_builder: None,
 		})?;
 
-	if config.offchain_worker.enabled {
-		sc_service::build_offchain_workers(
-			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
-		);
-	}
-
 	let role = config.role.clone();
 	let force_authoring = config.force_authoring;
 	let backoff_authoring_blocks: Option<()> = None;
@@ -504,12 +492,6 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
 			on_demand: Some(on_demand.clone()),
 			block_announce_validator_builder: None,
 		})?;
-
-	if config.offchain_worker.enabled {
-		sc_service::build_offchain_workers(
-			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
-		);
-	}
 
 	sc_service::spawn_tasks(sc_service::SpawnTasksParams {
 		remote_blockchain: Some(backend.remote_blockchain()),

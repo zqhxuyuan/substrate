@@ -22,10 +22,8 @@ use sc_chain_spec::ChainSpecExtension;
 use sp_core::{Pair, Public, crypto::UncheckedInto, sr25519};
 use serde::{Serialize, Deserialize};
 use node_runtime::{
-	AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, ContractsConfig, CouncilConfig,
-	DemocracyConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, SessionKeys, StakerStatus,
-	StakingConfig, ElectionsConfig, IndicesConfig, SocietyConfig, SudoConfig, SystemConfig,
-	TechnicalCommitteeConfig, wasm_binary_unwrap, MAX_NOMINATIONS,
+	BabeConfig, BalancesConfig, SessionKeys, SudoConfig, SystemConfig,
+	wasm_binary_unwrap, GrandpaConfig,
 };
 use node_runtime::Block;
 use node_runtime::constants::currency::*;
@@ -74,7 +72,9 @@ fn session_keys(
 	im_online: ImOnlineId,
 	authority_discovery: AuthorityDiscoveryId,
 ) -> SessionKeys {
-	SessionKeys { grandpa, babe, im_online, authority_discovery }
+	SessionKeys {
+		// grandpa, babe, im_online, authority_discovery
+	}
 }
 
 fn staging_testnet_config_genesis() -> GenesisConfig {
@@ -239,23 +239,6 @@ pub fn testnet_genesis(
 
 	// stakers: all validators and nominators.
 	let mut rng = rand::thread_rng();
-	let stakers = initial_authorities
-		.iter()
-		.map(|x| (x.0.clone(), x.1.clone(), STASH, StakerStatus::Validator))
-		.chain(initial_nominators.iter().map(|x| {
-			use rand::{seq::SliceRandom, Rng};
-			let limit = (MAX_NOMINATIONS as usize).min(initial_authorities.len());
-			let count = rng.gen::<usize>() % limit;
-			let nominations = initial_authorities
-				.as_slice()
-				.choose_multiple(&mut rng, count)
-				.into_iter()
-				.map(|choice| choice.0.clone())
-				.collect::<Vec<_>>();
-			(x.clone(), x.clone(), STASH, StakerStatus::Nominator(nominations))
-		}))
-		.collect::<Vec<_>>();
-
 	let num_endowed_accounts = endowed_accounts.len();
 
 	const ENDOWMENT: Balance = 10_000_000 * DOLLARS;
@@ -271,48 +254,48 @@ pub fn testnet_genesis(
 				.map(|x| (x, ENDOWMENT))
 				.collect()
 		},
-		pallet_indices: IndicesConfig {
-			indices: vec![],
-		},
-		pallet_session: SessionConfig {
-			keys: initial_authorities.iter().map(|x| {
-				(x.0.clone(), x.0.clone(), session_keys(
-					x.2.clone(),
-					x.3.clone(),
-					x.4.clone(),
-					x.5.clone(),
-				))
-			}).collect::<Vec<_>>(),
-		},
-		pallet_staking: StakingConfig {
-			validator_count: initial_authorities.len() as u32 * 2,
-			minimum_validator_count: initial_authorities.len() as u32,
-			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
-			slash_reward_fraction: Perbill::from_percent(10),
-			stakers,
-			.. Default::default()
-		},
-		pallet_democracy: DemocracyConfig::default(),
-		pallet_elections_phragmen: ElectionsConfig {
-			members: endowed_accounts.iter()
-						.take((num_endowed_accounts + 1) / 2)
-						.cloned()
-						.map(|member| (member, STASH))
-						.collect(),
-		},
-		pallet_collective_Instance1: CouncilConfig::default(),
-		pallet_collective_Instance2: TechnicalCommitteeConfig {
-			members: endowed_accounts.iter()
-						.take((num_endowed_accounts + 1) / 2)
-						.cloned()
-						.collect(),
-			phantom: Default::default(),
-		},
-		pallet_contracts: ContractsConfig {
-			// println should only be enabled on development chains
-			current_schedule: pallet_contracts::Schedule::default()
-				.enable_println(enable_println),
-		},
+		// pallet_indices: IndicesConfig {
+		// 	indices: vec![],
+		// },
+		// pallet_session: SessionConfig {
+		// 	keys: initial_authorities.iter().map(|x| {
+		// 		(x.0.clone(), x.0.clone(), session_keys(
+		// 			x.2.clone(),
+		// 			x.3.clone(),
+		// 			x.4.clone(),
+		// 			x.5.clone(),
+		// 		))
+		// 	}).collect::<Vec<_>>(),
+		// },
+		// pallet_staking: StakingConfig {
+		// 	validator_count: initial_authorities.len() as u32 * 2,
+		// 	minimum_validator_count: initial_authorities.len() as u32,
+		// 	invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
+		// 	slash_reward_fraction: Perbill::from_percent(10),
+		// 	stakers,
+		// 	.. Default::default()
+		// },
+		// pallet_democracy: DemocracyConfig::default(),
+		// pallet_elections_phragmen: ElectionsConfig {
+		// 	members: endowed_accounts.iter()
+		// 				.take((num_endowed_accounts + 1) / 2)
+		// 				.cloned()
+		// 				.map(|member| (member, STASH))
+		// 				.collect(),
+		// },
+		// pallet_collective_Instance1: CouncilConfig::default(),
+		// pallet_collective_Instance2: TechnicalCommitteeConfig {
+		// 	members: endowed_accounts.iter()
+		// 				.take((num_endowed_accounts + 1) / 2)
+		// 				.cloned()
+		// 				.collect(),
+		// 	phantom: Default::default(),
+		// },
+		// pallet_contracts: ContractsConfig {
+		// 	// println should only be enabled on development chains
+		// 	current_schedule: pallet_contracts::Schedule::default()
+		// 		.enable_println(enable_println),
+		// },
 		pallet_sudo: SudoConfig {
 			key: root_key,
 		},
@@ -320,27 +303,27 @@ pub fn testnet_genesis(
 			authorities: vec![],
 			epoch_config: Some(node_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
-		pallet_im_online: ImOnlineConfig {
-			keys: vec![],
-		},
-		pallet_authority_discovery: AuthorityDiscoveryConfig {
-			keys: vec![],
-		},
+		// pallet_im_online: ImOnlineConfig {
+		// 	keys: vec![],
+		// },
+		// pallet_authority_discovery: AuthorityDiscoveryConfig {
+		// 	keys: vec![],
+		// },
 		pallet_grandpa: GrandpaConfig {
 			authorities: vec![],
 		},
-		pallet_membership_Instance1: Default::default(),
-		pallet_treasury: Default::default(),
-		pallet_society: SocietyConfig {
-			members: endowed_accounts.iter()
-						.take((num_endowed_accounts + 1) / 2)
-						.cloned()
-						.collect(),
-			pot: 0,
-			max_members: 999,
-		},
-		pallet_vesting: Default::default(),
-		pallet_gilt: Default::default(),
+		// pallet_membership_Instance1: Default::default(),
+		// pallet_treasury: Default::default(),
+		// pallet_society: SocietyConfig {
+		// 	members: endowed_accounts.iter()
+		// 				.take((num_endowed_accounts + 1) / 2)
+		// 				.cloned()
+		// 				.collect(),
+		// 	pot: 0,
+		// 	max_members: 999,
+		// },
+		// pallet_vesting: Default::default(),
+		// pallet_gilt: Default::default(),
 	}
 }
 

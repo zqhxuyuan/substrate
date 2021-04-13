@@ -274,12 +274,6 @@ pub fn new_full_base(
 			block_announce_validator_builder: None,
 		})?;
 
-	if config.offchain_worker.enabled {
-		sc_service::build_offchain_workers(
-			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
-		);
-	}
-
 	let role = config.role.clone();
 	let force_authoring = config.force_authoring;
 	let backoff_authoring_blocks =
@@ -343,25 +337,25 @@ pub fn new_full_base(
 	}
 
 	// Spawn authority discovery module.
-	if role.is_authority() {
-		let authority_discovery_role = sc_authority_discovery::Role::PublishAndDiscover(
-			keystore_container.keystore(),
-		);
-		let dht_event_stream = network.event_stream("authority-discovery")
-			.filter_map(|e| async move { match e {
-				Event::Dht(e) => Some(e),
-				_ => None,
-			}});
-		let (authority_discovery_worker, _service) = sc_authority_discovery::new_worker_and_service(
-			client.clone(),
-			network.clone(),
-			Box::pin(dht_event_stream),
-			authority_discovery_role,
-			prometheus_registry.clone(),
-		);
-
-		task_manager.spawn_handle().spawn("authority-discovery-worker", authority_discovery_worker.run());
-	}
+	// if role.is_authority() {
+	// 	let authority_discovery_role = sc_authority_discovery::Role::PublishAndDiscover(
+	// 		keystore_container.keystore(),
+	// 	);
+	// 	let dht_event_stream = network.event_stream("authority-discovery")
+	// 		.filter_map(|e| async move { match e {
+	// 			Event::Dht(e) => Some(e),
+	// 			_ => None,
+	// 		}});
+	// 	let (authority_discovery_worker, _service) = sc_authority_discovery::new_worker_and_service(
+	// 		client.clone(),
+	// 		network.clone(),
+	// 		Box::pin(dht_event_stream),
+	// 		authority_discovery_role,
+	// 		prometheus_registry.clone(),
+	// 	);
+	//
+	// 	task_manager.spawn_handle().spawn("authority-discovery-worker", authority_discovery_worker.run());
+	// }
 
 	// if the node isn't actively participating in consensus then it doesn't
 	// need a keystore, regardless of which protocol we use below.
@@ -516,12 +510,6 @@ pub fn new_light_base(
 			block_announce_validator_builder: None,
 		})?;
 	network_starter.start_network();
-
-	if config.offchain_worker.enabled {
-		sc_service::build_offchain_workers(
-			&config, task_manager.spawn_handle(), client.clone(), network.clone(),
-		);
-	}
 
 	let light_deps = node_rpc::LightDeps {
 		remote_blockchain: backend.remote_blockchain(),

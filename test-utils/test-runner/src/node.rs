@@ -244,13 +244,6 @@ impl<T: ChainInfo> Node<T> {
 			build_network(params)?
 		};
 
-		sc_service::build_offchain_workers(
-			&config,
-			task_manager.spawn_handle(),
-			client.clone(),
-			network.clone(),
-		);
-
 		// Proposer object for block authorship.
 		let env = sc_basic_authorship::ProposerFactory::new(
 			task_manager.spawn_handle(),

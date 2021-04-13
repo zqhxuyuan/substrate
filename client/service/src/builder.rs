@@ -554,7 +554,7 @@ pub fn spawn_tasks<TBl, TBackend, TExPool, TRpc, TCl>(
 		StorageProvider<TBl, TBackend> + CallApiAt<TBl> + Send + 'static,
 		<TCl as ProvideRuntimeApi<TBl>>::Api:
 			sp_api::Metadata<TBl> +
-			sc_offchain::OffchainWorkerApi<TBl> +
+			// sc_offchain::OffchainWorkerApi<TBl> +
 			sp_transaction_pool::runtime_api::TaggedTransactionQueue<TBl> +
 			sp_session::SessionKeys<TBl> +
 			sp_api::ApiExt<TBl, StateBackend = TBackend::State>,

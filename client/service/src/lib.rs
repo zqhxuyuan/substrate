@@ -52,7 +52,7 @@ use sp_utils::{status_sinks, mpsc::{tracing_unbounded, TracingUnboundedReceiver}
 pub use self::error::Error;
 pub use self::builder::{
 	new_full_client, new_db_backend, new_client, new_full_parts, new_light_parts,
-	spawn_tasks, build_network, build_offchain_workers,
+	spawn_tasks, build_network,
 	BuildNetworkParams, KeystoreContainer, NetworkStarter, SpawnTasksParams, TFullClient, TLightClient,
 	TFullBackend, TLightBackend, TLightBackendWithHash, TLightClientWithBackend,
 	TFullCallExecutor, TLightCallExecutor, RpcExtensionBuilder, NoopRpcExtensionBuilder,
