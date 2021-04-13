@@ -222,23 +222,13 @@ where
 		let header = self.api.finalize_block_with_context(
 			&self.block_id, ExecutionContext::BlockConstruction
 		)?;
-
-		debug_assert_eq!(
-			header.extrinsics_root().clone(),
-			HashFor::<Block>::ordered_trie_root(
-				self.extrinsics.iter().map(Encode::encode).collect(),
-			),
-		);
-
 		let proof = self.api.extract_proof();
-
 		let state = self.backend.state_at(self.block_id)?;
 		let changes_trie_state = backend::changes_tries_state_at_block(
 			&self.block_id,
 			self.backend.changes_trie_storage(),
 		)?;
 		let parent_hash = self.parent_hash;
-
 		let storage_changes = self.api.into_storage_changes(
 			&state,
 			changes_trie_state.as_ref(),
