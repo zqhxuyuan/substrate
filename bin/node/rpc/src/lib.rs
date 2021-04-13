@@ -100,7 +100,7 @@ pub struct FullDeps<C, P, SC, B> {
 	/// Whether to deny unsafe calls
 	pub deny_unsafe: DenyUnsafe,
 	/// BABE specific dependencies.
-	pub babe: BabeDeps,
+	// pub babe: BabeDeps,
 	/// GRANDPA specific dependencies.
 	pub grandpa: GrandpaDeps<B>,
 }
@@ -110,7 +110,7 @@ pub type IoHandler = jsonrpc_core::IoHandler<sc_rpc::Metadata>;
 
 /// Instantiate all Full RPC extensions.
 pub fn create_full<C, P, SC, B>(
-	deps: FullDeps<C, P, SC, B>,
+	_: FullDeps<C, P, SC, B>,
 ) -> jsonrpc_core::IoHandler<sc_rpc_api::Metadata> where
 	C: ProvideRuntimeApi<Block> + HeaderBackend<Block> + AuxStore +
 		HeaderMetadata<Block, Error=BlockChainError> + Sync + Send + 'static,
@@ -131,29 +131,29 @@ pub fn create_full<C, P, SC, B>(
 	use pallet_transaction_payment_rpc::{TransactionPayment, TransactionPaymentApi};
 
 	let mut io = jsonrpc_core::IoHandler::default();
-	let FullDeps {
-		client,
-		pool,
-		select_chain,
-		chain_spec,
-		deny_unsafe,
-		babe,
-		grandpa,
-	} = deps;
-
-	let BabeDeps {
-		keystore,
-		babe_config,
-		shared_epoch_changes,
-	} = babe;
-	let GrandpaDeps {
-		shared_voter_state,
-		shared_authority_set,
-		justification_stream,
-		subscription_executor,
-		finality_provider,
-	} = grandpa;
-
+	// let FullDeps {
+	// 	client,
+	// 	pool,
+	// 	select_chain,
+	// 	chain_spec,
+	// 	deny_unsafe,
+	// 	babe,
+	// 	grandpa,
+	// } = deps;
+	//
+	// let BabeDeps {
+	// 	keystore,
+	// 	babe_config,
+	// 	shared_epoch_changes,
+	// } = babe;
+	// let GrandpaDeps {
+	// 	shared_voter_state,
+	// 	shared_authority_set,
+	// 	justification_stream,
+	// 	subscription_executor,
+	// 	finality_provider,
+	// } = grandpa;
+	//
 	// io.extend_with(
 	// 	SystemApi::to_delegate(FullSystem::new(client.clone(), pool, deny_unsafe))
 	// );

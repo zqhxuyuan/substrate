@@ -37,38 +37,12 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_consensus_babe::SlotProportion;
 use log::info;
 
-// use sc_executor::native_executor_instance;
-// use polkadot_service::kusama_runtime as ksm_rt;
-// use polkadot_service::polkadot_runtime as dot_rt;
-// use polkadot_service::westend_runtime as wnd_rt;
-
 type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullGrandpaBlockImport =
 	grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
 type LightClient = sc_service::TLightClient<Block, RuntimeApi, Executor>;
-
-// native_executor_instance!(
-// 	pub PolkadotExecutor,
-// 	dot_rt::api::dispatch,
-// 	dot_rt::native_version,
-// 	sp_io::SubstrateHostFunctions,
-// );
-//
-// native_executor_instance!(
-// 	pub KusamaExecutor,
-// 	ksm_rt::api::dispatch,
-// 	ksm_rt::native_version,
-// 	sp_io::SubstrateHostFunctions,
-// );
-//
-// native_executor_instance!(
-// 	pub WestendExecutor,
-// 	wnd_rt::api::dispatch,
-// 	wnd_rt::native_version,
-// 	sp_io::SubstrateHostFunctions,
-// );
 
 pub fn new_partial(
 	config: &Configuration,
@@ -137,7 +111,7 @@ pub fn new_partial(
 
 	let (block_import, babe_link) = sc_consensus_babe::block_import(
 		sc_consensus_babe::Config::get_or_compute(&*client)?,
-		grandpa_block_import,
+		grandpa_block_import.clone(),
 		client.clone(),
 	)?;
 
@@ -156,10 +130,14 @@ pub fn new_partial(
 		telemetry.as_ref().map(|x| x.handle()),
 	)?;
 
+	// let import_queue = sc_archive::import_queue(
+	// 	grandpa_block_import, client.clone(), &task_manager.spawn_essential_handle()
+	// )?;
+
 	let import_setup = (block_import, grandpa_link, babe_link);
 
 	let (rpc_extensions_builder, rpc_setup) = {
-		let (_, grandpa_link, babe_link) = &import_setup;
+		let (_, grandpa_link, _) = &import_setup;
 
 		let justification_stream = grandpa_link.justification_stream();
 		let shared_authority_set = grandpa_link.shared_authority_set().clone();
@@ -171,8 +149,8 @@ pub fn new_partial(
 			Some(shared_authority_set.clone()),
 		);
 
-		let babe_config = babe_link.config().clone();
-		let shared_epoch_changes = babe_link.epoch_changes().clone();
+		// let babe_config = babe_link.config().clone();
+		// let shared_epoch_changes = babe_link.epoch_changes().clone();
 
 		let client = client.clone();
 		let pool = transaction_pool.clone();
@@ -187,11 +165,11 @@ pub fn new_partial(
 				select_chain: select_chain.clone(),
 				chain_spec: chain_spec.cloned_box(),
 				deny_unsafe,
-				babe: node_rpc::BabeDeps {
-					babe_config: babe_config.clone(),
-					shared_epoch_changes: shared_epoch_changes.clone(),
-					keystore: keystore.clone(),
-				},
+				// babe: node_rpc::BabeDeps {
+				// 	babe_config: babe_config.clone(),
+				// 	shared_epoch_changes: shared_epoch_changes.clone(),
+				// 	keystore: keystore.clone(),
+				// },
 				grandpa: node_rpc::GrandpaDeps {
 					shared_voter_state: shared_voter_state.clone(),
 					shared_authority_set: shared_authority_set.clone(),
@@ -275,9 +253,8 @@ pub fn new_full_base(
 		})?;
 
 	let role = config.role.clone();
-	let force_authoring = config.force_authoring;
-	let backoff_authoring_blocks =
-		Some(sc_consensus_slots::BackoffAuthoringOnFinalizedHeadLagging::default());
+	// let force_authoring = config.force_authoring;
+	// let backoff_authoring_blocks = Some(sc_consensus_slots::BackoffAuthoringOnFinalizedHeadLagging::default());
 	let name = config.network.node_name.clone();
 	let enable_grandpa = !config.disable_grandpa;
 	let prometheus_registry = config.prometheus_registry().cloned();
@@ -300,61 +277,42 @@ pub fn new_full_base(
 		},
 	)?;
 
-	let (block_import, grandpa_link, babe_link) = import_setup;
+	let (block_import, grandpa_link, _) = import_setup;
 
-	(with_startup_data)(&block_import, &babe_link);
+	// It's ok to delete this line
+	// (with_startup_data)(&block_import, &babe_link);
 
-	if let sc_service::config::Role::Authority { .. } = &role {
-		let proposer = sc_basic_authorship::ProposerFactory::new(
-			task_manager.spawn_handle(),
-			client.clone(),
-			transaction_pool.clone(),
-			prometheus_registry.as_ref(),
-			telemetry.as_ref().map(|x| x.handle()),
-		);
-
-		let can_author_with =
-			sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
-
-		let babe_config = sc_consensus_babe::BabeParams {
-			keystore: keystore_container.sync_keystore(),
-			client: client.clone(),
-			select_chain,
-			env: proposer,
-			block_import,
-			sync_oracle: network.clone(),
-			inherent_data_providers: inherent_data_providers.clone(),
-			force_authoring,
-			backoff_authoring_blocks,
-			babe_link,
-			can_author_with,
-			block_proposal_slot_portion: SlotProportion::new(0.5),
-			telemetry: telemetry.as_ref().map(|x| x.handle()),
-		};
-
-		let babe = sc_consensus_babe::start_babe(babe_config)?;
-		task_manager.spawn_essential_handle().spawn_blocking("babe-proposer", babe);
-	}
-
-	// Spawn authority discovery module.
-	// if role.is_authority() {
-	// 	let authority_discovery_role = sc_authority_discovery::Role::PublishAndDiscover(
-	// 		keystore_container.keystore(),
-	// 	);
-	// 	let dht_event_stream = network.event_stream("authority-discovery")
-	// 		.filter_map(|e| async move { match e {
-	// 			Event::Dht(e) => Some(e),
-	// 			_ => None,
-	// 		}});
-	// 	let (authority_discovery_worker, _service) = sc_authority_discovery::new_worker_and_service(
+	// default role is Full
+	// if let sc_service::config::Role::Authority { .. } = &role {
+	// 	let proposer = sc_basic_authorship::ProposerFactory::new(
+	// 		task_manager.spawn_handle(),
 	// 		client.clone(),
-	// 		network.clone(),
-	// 		Box::pin(dht_event_stream),
-	// 		authority_discovery_role,
-	// 		prometheus_registry.clone(),
+	// 		transaction_pool.clone(),
+	// 		prometheus_registry.as_ref(),
+	// 		telemetry.as_ref().map(|x| x.handle()),
 	// 	);
 	//
-	// 	task_manager.spawn_handle().spawn("authority-discovery-worker", authority_discovery_worker.run());
+	// 	let can_author_with =
+	// 		sp_consensus::CanAuthorWithNativeVersion::new(client.executor().clone());
+	//
+	// 	let babe_config = sc_consensus_babe::BabeParams {
+	// 		keystore: keystore_container.sync_keystore(),
+	// 		client: client.clone(),
+	// 		select_chain,
+	// 		env: proposer,
+	// 		block_import,
+	// 		sync_oracle: network.clone(),
+	// 		inherent_data_providers: inherent_data_providers.clone(),
+	// 		force_authoring,
+	// 		backoff_authoring_blocks,
+	// 		babe_link,
+	// 		can_author_with,
+	// 		block_proposal_slot_portion: SlotProportion::new(0.5),
+	// 		telemetry: telemetry.as_ref().map(|x| x.handle()),
+	// 	};
+	//
+	// 	let babe = sc_consensus_babe::start_babe(babe_config)?;
+	// 	task_manager.spawn_essential_handle().spawn_blocking("babe-proposer", babe);
 	// }
 
 	// if the node isn't actively participating in consensus then it doesn't

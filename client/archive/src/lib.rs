@@ -36,6 +36,7 @@ use crate::verifier::PassThroughVerifier;
 use sp_consensus::import_queue::BoxBlockImport;
 
 mod verifier;
+mod import_queue;
 
 pub fn import_queue<Block: BlockT, Client, Inner>(
     block_import: Inner,
