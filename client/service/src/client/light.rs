@@ -33,7 +33,7 @@ use sc_client_api::light::Storage as BlockchainStorage;
 use sc_light::{Backend, GenesisCallExecutor};
 
 /// Create an instance of light client.
-pub fn new_light<B, S, RA, E>(
+pub fn new_light<B, S, E>(
 	backend: Arc<Backend<S, HashFor<B>>>,
 	genesis_storage: &dyn BuildStorage,
 	code_executor: E,
@@ -47,8 +47,7 @@ pub fn new_light<B, S, RA, E>(
 				Backend<S, HashFor<B>>,
 				LocalCallExecutor<Backend<S, HashFor<B>>, E>
 			>,
-			B,
-			RA
+			B
 		>
 	>
 	where

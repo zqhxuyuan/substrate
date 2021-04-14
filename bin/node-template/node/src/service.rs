@@ -22,7 +22,7 @@ native_executor_instance!(
 	frame_benchmarking::benchmarking::HostFunctions,
 );
 
-type FullClient = sc_service::TFullClient<Block, RuntimeApi, Executor>;
+type FullClient = sc_service::TFullClient<Block, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
@@ -120,7 +120,7 @@ pub fn new_partial(config: &Configuration) -> Result<sc_service::PartialComponen
 		.transpose()?;
 
 	let (client, backend, keystore_container, task_manager) =
-		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
+		sc_service::new_full_parts::<Block, Executor>(
 			&config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
 		)?;
@@ -192,7 +192,7 @@ pub fn new_partial1(config: &Configuration) -> Result<sc_service::PartialCompone
 		.transpose()?;
 
 	let (client, backend, keystore_container, task_manager) =
-		sc_service::new_full_parts::<Block, RuntimeApi, Executor>(
+		sc_service::new_full_parts::<Block, Executor>(
 			&config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
 		)?;
@@ -432,7 +432,7 @@ pub fn new_light(mut config: Configuration) -> Result<TaskManager, ServiceError>
 		.transpose()?;
 
 	let (client, backend, keystore_container, mut task_manager, on_demand) =
-		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(
+		sc_service::new_light_parts::<Block, Executor>(
 			&config,
 			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
 		)?;

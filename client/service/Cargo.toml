@@ -79,6 +79,7 @@ tracing = "0.1.25"
 tracing-futures = { version = "0.2.4" }
 parity-util-mem = { version = "0.9.0", default-features = false, features = ["primitive-types"] }
 async-trait = "0.1.42"
+sp-authority-discovery = { version = "3.0.0",  path = "../../primitives/authority-discovery" }
 
 [target.'cfg(not(target_os = "unknown"))'.dependencies]
 tempfile = "3.1.0"

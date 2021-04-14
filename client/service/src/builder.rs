@@ -138,11 +138,10 @@ impl<R> From<R> for NoopRpcExtensionBuilder<R> where
 
 
 /// Full client type.
-pub type TFullClient<TBl, TRtApi, TExecDisp> = Client<
+pub type TFullClient<TBl, TExecDisp> = Client<
 	TFullBackend<TBl>,
 	TFullCallExecutor<TBl, TExecDisp>,
 	TBl,
-	TRtApi,
 >;
 
 /// Full client backend type.
@@ -155,8 +154,8 @@ pub type TFullCallExecutor<TBl, TExecDisp> = crate::client::LocalCallExecutor<
 >;
 
 /// Light client type.
-pub type TLightClient<TBl, TRtApi, TExecDisp> = TLightClientWithBackend<
-	TBl, TRtApi, TExecDisp, TLightBackend<TBl>
+pub type TLightClient<TBl, TExecDisp> = TLightClientWithBackend<
+	TBl, TExecDisp, TLightBackend<TBl>
 >;
 
 /// Light client backend type.
@@ -180,15 +179,15 @@ pub type TLightCallExecutor<TBl, TExecDisp> = sc_light::GenesisCallExecutor<
 	>,
 >;
 
-type TFullParts<TBl, TRtApi, TExecDisp> = (
-	TFullClient<TBl, TRtApi, TExecDisp>,
+type TFullParts<TBl, TExecDisp> = (
+	TFullClient<TBl, TExecDisp>,
 	Arc<TFullBackend<TBl>>,
 	KeystoreContainer,
 	TaskManager,
 );
 
-type TLightParts<TBl, TRtApi, TExecDisp> = (
-	Arc<TLightClient<TBl, TRtApi, TExecDisp>>,
+type TLightParts<TBl, TExecDisp> = (
+	Arc<TLightClient<TBl, TExecDisp>>,
 	Arc<TLightBackend<TBl>>,
 	KeystoreContainer,
 	TaskManager,
@@ -202,14 +201,13 @@ pub type TLightBackendWithHash<TBl, THash> = sc_light::Backend<
 >;
 
 /// Light client type with a specific backend.
-pub type TLightClientWithBackend<TBl, TRtApi, TExecDisp, TBackend> = Client<
+pub type TLightClientWithBackend<TBl, TExecDisp, TBackend> = Client<
 	TBackend,
 	sc_light::GenesisCallExecutor<
 		TBackend,
 		crate::client::LocalCallExecutor<TBackend, NativeExecutor<TExecDisp>>,
 	>,
 	TBl,
-	TRtApi,
 >;
 
 trait AsCryptoStoreRef {
@@ -289,10 +287,10 @@ impl KeystoreContainer {
 }
 
 /// Creates a new full client for the given config.
-pub fn new_full_client<TBl, TRtApi, TExecDisp>(
+pub fn new_full_client<TBl, TExecDisp>(
 	config: &Configuration,
 	telemetry: Option<TelemetryHandle>,
-) -> Result<TFullClient<TBl, TRtApi, TExecDisp>, Error> where
+) -> Result<TFullClient<TBl, TExecDisp>, Error> where
 	TBl: BlockT,
 	TExecDisp: NativeExecutionDispatch + 'static,
 {
@@ -300,10 +298,10 @@ pub fn new_full_client<TBl, TRtApi, TExecDisp>(
 }
 
 /// Create the initial parts of a full node.
-pub fn new_full_parts<TBl, TRtApi, TExecDisp>(
+pub fn new_full_parts<TBl, TExecDisp>(
 	config: &Configuration,
 	telemetry: Option<TelemetryHandle>,
-) -> Result<TFullParts<TBl, TRtApi, TExecDisp>,	Error> where
+) -> Result<TFullParts<TBl, TExecDisp>,	Error> where
 	TBl: BlockT,
 	TExecDisp: NativeExecutionDispatch + 'static,
 {
@@ -378,10 +376,10 @@ pub fn new_full_parts<TBl, TRtApi, TExecDisp>(
 }
 
 /// Create the initial parts of a light node.
-pub fn new_light_parts<TBl, TRtApi, TExecDisp>(
+pub fn new_light_parts<TBl, TExecDisp>(
 	config: &Configuration,
 	telemetry: Option<TelemetryHandle>,
-) -> Result<TLightParts<TBl, TRtApi, TExecDisp>, Error> where
+) -> Result<TLightParts<TBl, TExecDisp>, Error> where
 	TBl: BlockT,
 	TExecDisp: NativeExecutionDispatch + 'static,
 {
@@ -443,7 +441,7 @@ pub fn new_db_backend<Block>(
 }
 
 /// Create an instance of client backed by given backend.
-pub fn new_client<E, Block, RA>(
+pub fn new_client<E, Block>(
 	backend: Arc<Backend<Block>>,
 	executor: E,
 	genesis_storage: &dyn BuildStorage,
@@ -459,7 +457,6 @@ pub fn new_client<E, Block, RA>(
 		Backend<Block>,
 		crate::client::LocalCallExecutor<Backend<Block>, E>,
 		Block,
-		RA,
 	>,
 	sp_blockchain::Error,
 >

@@ -50,4 +50,7 @@ sp_api::decl_runtime_apis! {
 		/// Retrieve authority identifiers of the current and next authority set.
 		fn authorities() -> Vec<AuthorityId>;
 	}
+	// pub trait AuthBlockApi<Block> {
+	// 	fn test();
+	// }
 }

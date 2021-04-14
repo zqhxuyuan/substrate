@@ -360,7 +360,6 @@ mod tests {
 			_,
 			runtime::Block,
 			_,
-			runtime::RuntimeApi,
 		>(
 			backend.clone(),
 			executor.clone(),
