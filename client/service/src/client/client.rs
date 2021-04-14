@@ -102,6 +102,7 @@ use {
 use sp_authority_discovery::{AuthorityDiscoveryApi, AuthorityId};
 use sp_runtime::traits::Block;
 pub use sp_state_machine::ChangesTrieState;
+use crate::client::mock::MockRuntimeAPi;
 
 type NotificationSinks<T> = Mutex<Vec<TracingUnboundedSender<T>>>;
 
@@ -1627,38 +1628,18 @@ impl<B, E, Block> ProvideCache<Block> for Client<B, E, Block> where
 	}
 }
 
-pub struct MockRuntimeAPi;
-use sp_core::OpaqueMetadata;
-
-// sp_api::mock_impl_runtime_apis! {
-// 	impl AuthorityDiscoveryApi<Block> for MockRuntimeAPi {
-// 		fn authorities(&self) -> Vec<AuthorityId> {
-// 			self.authorities.clone()
-// 		}
-// 	}
-// }
-
-// construct_runtime!(
-// 	pub enum MockRuntimeAPi where
-// 		Block = Block,
-// 		NodeBlock = node_primitives::Block,
-// 		UncheckedExtrinsic = UncheckedExtrinsic
-// 	{
-// 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-// 		Utility: pallet_utility::{Pallet, Call, Event},
-// 	}
-// );
-
-// impl<B, E, Block> ProvideRuntimeApi<Block> for Client<B, E, Block> where
-// 	B: backend::Backend<Block>,
-// 	E: CallExecutor<Block, Backend = B> + Send + Sync,
-// 	Block: BlockT,
-// {
-// 	type Api = MockRuntimeAPi;
-// 	fn runtime_api<'a>(&'a self) -> ApiRef<'a, Self::Api> {
-// 		MockRuntimeAPi {}.into()
-// 	}
-// }
+impl<B, E, Block> ProvideRuntimeApi<Block> for Client<B, E, Block> where
+	B: backend::Backend<Block>,
+	E: CallExecutor<Block, Backend = B> + Send + Sync,
+	Block: BlockT,
+{
+	type Api = MockRuntimeAPi<Block>;
+	fn runtime_api<'a>(&'a self) -> ApiRef<'a, Self::Api> {
+		MockRuntimeAPi {
+			_ph: Default::default()
+		}.into()
+	}
+}
 
 // the type parameter `RA` is not constrained by the impl trait, self type, or predicates
 // RA ^^ unconstrained type parameter
