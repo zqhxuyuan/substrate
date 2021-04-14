@@ -161,7 +161,7 @@ pub type Client<B> = client::Client<
 	B,
 	client::LocalCallExecutor<B, sc_executor::NativeExecutor<LocalExecutor>>,
 	substrate_test_runtime::Block,
-	substrate_test_runtime::RuntimeApi,
+	// substrate_test_runtime::RuntimeApi,
 >;
 
 /// A test client with default backend.
@@ -352,7 +352,8 @@ pub fn new() -> Client<Backend> {
 
 /// Creates new light client instance used for tests.
 pub fn new_light() -> (
-	client::Client<LightBackend, LightExecutor, substrate_test_runtime::Block, substrate_test_runtime::RuntimeApi>,
+	// client::Client<LightBackend, LightExecutor, substrate_test_runtime::Block, substrate_test_runtime::RuntimeApi>,
+	client::Client<LightBackend, LightExecutor, substrate_test_runtime::Block>,
 	Arc<LightBackend>,
 ) {
 
