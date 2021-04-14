@@ -434,7 +434,8 @@ mod tests {
 		let client = Arc::new(client);
 
 		let built_block = BlockBuilder::new(
-			&*client,
+			// &*client,
+			client,
 			client.info().best_hash,
 			client.info().best_number,
 			RecordProof::No,

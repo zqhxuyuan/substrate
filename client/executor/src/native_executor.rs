@@ -470,9 +470,9 @@ impl<D: NativeExecutionDispatch + 'static> CodeExecutor for NativeExecutor<D> {
 	>(
 		&self,
 		ext: &mut dyn Externalities,
-		runtime_code: &RuntimeCode,
-		method: &str,
-		data: &[u8],
+		runtime_code: &RuntimeCode, // is in storage
+		method: &str, // calling method
+		data: &[u8],  // calling parameters
 		_use_native: bool,
 		_native_call: Option<NC>,
 	) -> (Result<NativeOrEncoded<R>>, bool) {
@@ -482,7 +482,14 @@ impl<D: NativeExecutionDispatch + 'static> CodeExecutor for NativeExecutor<D> {
 			ext,
 			false,
 			|module, instance, onchain_version, mut ext| {
-				// wasm
+				// native execution
+				// with_externalities_safe(&mut **ext, move || (_native_call.unwrap())())
+				// 	.and_then(|r| r
+				// 		.map(NativeOrEncoded::Native)
+				// 		.map_err(Error::ApiError)
+				// 	);
+				// wasm execution
+				// only need module,method,data, don't need native_call
 				with_externalities_safe(
 					&mut **ext,
 					move || {
