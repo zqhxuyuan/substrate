@@ -34,13 +34,12 @@ use sp_runtime::{
 };
 use sp_blockchain::{ApplyExtrinsicFailed, Error};
 use sp_core::ExecutionContext;
-use sp_api::{
-	Core, ApiExt, ApiRef, ProvideRuntimeApi, StorageChanges, StorageProof, TransactionOutcome,
-};
+use sp_api::{Core, ApiExt, ApiRef, ProvideRuntimeApi, StorageChanges, StorageProof, TransactionOutcome, CallApiAt, CallApiAtParams, InitializeBlock};
 
 pub use sp_block_builder::BlockBuilder as BlockBuilderApi;
 
 use sc_client_api::backend;
+use std::sync::Arc;
 
 /// Used as parameter to [`BlockBuilderProvider`] to express if proof recording should be enabled.
 ///
@@ -142,6 +141,7 @@ impl<'a, Block, A, B> BlockBuilder<'a, Block, A, B>
 where
 	Block: BlockT,
 	A: ProvideRuntimeApi<Block> + 'a,
+	// A: CallApiAt<Block>, // TODO if call by call_api_at, should add this trait
 	A::Api: BlockBuilderApi<Block> + ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>,
 	B: backend::Backend<Block>,
 {
@@ -165,14 +165,13 @@ where
 			parent_hash,
 			inherent_digests,
 		);
+		let block_id = BlockId::Hash(parent_hash);
 
 		let mut api = client.runtime_api();
 
 		if record_proof.yes() {
 			api.record_proof();
 		}
-
-		let block_id = BlockId::Hash(parent_hash);
 
 		api.initialize_block_with_context(
 			&block_id, ExecutionContext::BlockConstruction, &header,
@@ -289,6 +288,7 @@ mod tests {
 
 		let block = BlockBuilder::new(
 			&client,
+			// Arc::new(client),
 			client.info().best_hash,
 			client.info().best_number,
 			RecordProof::Yes,

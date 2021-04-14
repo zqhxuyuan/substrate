@@ -100,20 +100,6 @@ pub struct MockRuntimeAPi<Block> {
     pub(crate) _ph: PhantomData<Block>
 }
 
-// use sp_core::OpaqueMetadata;
-// sp_api::mock_impl_runtime_apis! {
-// 	impl AuthorityDiscoveryApi<Block> for MockRuntimeAPi {
-// 		fn authorities(&self) -> Vec<AuthorityId> {
-// 			self.authorities.clone()
-// 		}
-// 	}
-// 	impl sp_api::Metadata<BlockT> for MockRuntimeAPi {
-// 		fn metadata() -> OpaqueMetadata {
-// 			unimplemented!()
-// 		}
-// 	}
-// }
-
 impl<Block> ApiExt<Block> for MockRuntimeAPi<Block> where Block: BlockT {
     type StateBackend = sp_api::InMemoryBackend<sp_api::HashFor<Block>>;
 
@@ -146,6 +132,20 @@ impl<Block> ApiExt<Block> for MockRuntimeAPi<Block> where Block: BlockT {
         unimplemented!()
     }
 }
+
+// use sp_core::OpaqueMetadata;
+// sp_api::mock_impl_runtime_apis! {
+// 	impl AuthorityDiscoveryApi<Block> for MockRuntimeAPi {
+// 		fn authorities(&self) -> Vec<AuthorityId> {
+// 			self.authorities.clone()
+// 		}
+// 	}
+// 	impl sp_api::Metadata<BlockT> for MockRuntimeAPi {
+// 		fn metadata() -> OpaqueMetadata {
+// 			unimplemented!()
+// 		}
+// 	}
+// }
 
 // use sp_api::impl_runtime_apis;
 //
