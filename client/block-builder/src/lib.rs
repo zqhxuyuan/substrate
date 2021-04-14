@@ -131,7 +131,8 @@ pub trait BlockBuilderProvider<B, Block, RA>
 /// Utility for building new (valid) blocks from a stream of extrinsics.
 pub struct BlockBuilder<'a, Block: BlockT, A: ProvideRuntimeApi<Block>, B> {
 	extrinsics: Vec<Block::Extrinsic>,
-	api: ApiRef<'a, A::Api>,
+	// api: ApiRef<'a, A::Api>,
+	client: &'a A,
 	block_id: BlockId<Block>,
 	parent_hash: Block::Hash,
 	backend: &'a B,
@@ -150,7 +151,7 @@ where
 	/// These recorded trie nodes can be used by a third party to prove the
 	/// output of this block builder without having access to the full storage.
 	pub fn new(
-		api: &'a A,
+		client: &'a A,
 		parent_hash: Block::Hash,
 		parent_number: NumberFor<Block>,
 		record_proof: RecordProof,
@@ -165,7 +166,7 @@ where
 			inherent_digests,
 		);
 
-		let mut api = api.runtime_api();
+		let mut api = client.runtime_api();
 
 		if record_proof.yes() {
 			api.record_proof();
@@ -180,7 +181,7 @@ where
 		Ok(Self {
 			parent_hash,
 			extrinsics: Vec::new(),
-			api,
+			client,
 			block_id,
 			backend,
 		})
@@ -193,7 +194,7 @@ where
 		let block_id = &self.block_id;
 		let extrinsics = &mut self.extrinsics;
 
-		self.api.execute_in_transaction(|api| {
+		self.client.runtime_api().execute_in_transaction(|api| {
 			match api.apply_extrinsic_with_context(
 				block_id,
 				ExecutionContext::BlockConstruction,
@@ -219,7 +220,7 @@ where
 	/// supplied by `self.api`, combined as [`BuiltBlock`].
 	/// The storage proof will be `Some(_)` when proof recording was enabled.
 	pub fn build(mut self) -> Result<BuiltBlock<Block, backend::StateBackendFor<B, Block>>, Error> {
-		let header = self.api.finalize_block_with_context(
+		let header = self.client.runtime_api().finalize_block_with_context(
 			&self.block_id, ExecutionContext::BlockConstruction
 		)?;
 
@@ -230,7 +231,7 @@ where
 			),
 		);
 
-		let proof = self.api.extract_proof();
+		let proof = self.client.runtime_api().extract_proof();
 
 		let state = self.backend.state_at(self.block_id)?;
 		let changes_trie_state = backend::changes_tries_state_at_block(
@@ -239,7 +240,7 @@ where
 		)?;
 		let parent_hash = self.parent_hash;
 
-		let storage_changes = self.api.into_storage_changes(
+		let storage_changes = self.client.runtime_api().into_storage_changes(
 			&state,
 			changes_trie_state.as_ref(),
 			parent_hash,
@@ -260,7 +261,7 @@ where
 		inherent_data: sp_inherents::InherentData,
 	) -> Result<Vec<Block::Extrinsic>, Error> {
 		let block_id = self.block_id;
-		self.api.execute_in_transaction(move |api| {
+		self.client.runtime_api().execute_in_transaction(move |api| {
 			// `create_inherents` should not change any state, to ensure this we always rollback
 			// the transaction.
 			TransactionOutcome::Rollback(api.inherent_extrinsics_with_context(
