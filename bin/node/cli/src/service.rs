@@ -37,38 +37,12 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_consensus_babe::SlotProportion;
 use log::info;
 
-// use sc_executor::native_executor_instance;
-// use polkadot_service::kusama_runtime as ksm_rt;
-// use polkadot_service::polkadot_runtime as dot_rt;
-// use polkadot_service::westend_runtime as wnd_rt;
-
 type FullClient = sc_service::TFullClient<Block, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullGrandpaBlockImport =
 	grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
 type LightClient = sc_service::TLightClient<Block, Executor>;
-
-// native_executor_instance!(
-// 	pub PolkadotExecutor,
-// 	dot_rt::api::dispatch,
-// 	dot_rt::native_version,
-// 	sp_io::SubstrateHostFunctions,
-// );
-//
-// native_executor_instance!(
-// 	pub KusamaExecutor,
-// 	ksm_rt::api::dispatch,
-// 	ksm_rt::native_version,
-// 	sp_io::SubstrateHostFunctions,
-// );
-//
-// native_executor_instance!(
-// 	pub WestendExecutor,
-// 	wnd_rt::api::dispatch,
-// 	wnd_rt::native_version,
-// 	sp_io::SubstrateHostFunctions,
-// );
 
 pub fn new_partial(
 	config: &Configuration,
