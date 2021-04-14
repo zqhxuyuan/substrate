@@ -416,14 +416,14 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
-		fn validate_transaction(
-			source: TransactionSource,
-			tx: <Block as BlockT>::Extrinsic,
-		) -> TransactionValidity {
-			Executive::validate_transaction(source, tx)
-		}
-	}
+	// impl sp_transaction_pool::runtime_api::TaggedTransactionQueue<Block> for Runtime {
+	// 	fn validate_transaction(
+	// 		source: TransactionSource,
+	// 		tx: <Block as BlockT>::Extrinsic,
+	// 	) -> TransactionValidity {
+	// 		Executive::validate_transaction(source, tx)
+	// 	}
+	// }
 
 	impl fg_primitives::GrandpaApi<Block> for Runtime {
 		fn grandpa_authorities() -> GrandpaAuthorityList {
