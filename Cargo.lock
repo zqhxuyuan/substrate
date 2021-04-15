@@ -4076,23 +4076,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "node-browser-testing"
-version = "2.0.0"
-dependencies = [
- "futures 0.3.13",
- "futures-timer 3.0.2",
- "jsonrpc-core",
- "libp2p",
- "node-cli",
- "sc-rpc-api",
- "serde",
- "serde_json",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test",
-]
-
-[[package]]
 name = "node-cli"
 version = "2.0.0"
 dependencies = [
@@ -7832,6 +7815,8 @@ dependencies = [
  "async-trait",
  "directories",
  "exit-future",
+ "frame-executive",
+ "frame-support",
  "futures 0.1.31",
  "futures 0.3.13",
  "futures-timer 3.0.2",
@@ -7840,6 +7825,8 @@ dependencies = [
  "jsonrpc-pubsub",
  "lazy_static",
  "log",
+ "pallet-babe",
+ "pallet-grandpa",
  "parity-scale-codec 2.1.0",
  "parity-util-mem",
  "parking_lot 0.11.1",
@@ -10643,8 +10630,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ee1280240b7c461d6a0071313e08f34a60b0365f14260362e5a2b17d1d31aa7"
 dependencies = [
  "cfg-if 1.0.0",
- "serde",
- "serde_json",
  "wasm-bindgen-macro",
 ]
 
@@ -10703,30 +10688,6 @@ name = "wasm-bindgen-shared"
 version = "0.2.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d6f8ec44822dd71f5f221a5847fb34acd9060535c1211b70a05844c0f6383b1"
-
-[[package]]
-name = "wasm-bindgen-test"
-version = "0.3.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0d4da138503a4cf86801b94d95781ee3619faa8feca830569cc6b54997b8b5c"
-dependencies = [
- "console_error_panic_hook",
- "js-sys",
- "scoped-tls",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test-macro",
-]
-
-[[package]]
-name = "wasm-bindgen-test-macro"
-version = "0.3.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3199c33f06500c731d5544664c24d0c2b742b98debc6b1c6f0c6d6e8fb7c19b"
-dependencies = [
- "proc-macro2",
- "quote",
-]
 
 [[package]]
 name = "wasm-gc-api"

@@ -51,7 +51,7 @@ mod call_executor;
 mod client;
 mod block_rules;
 mod wasm_override;
-mod mock;
+pub mod mock;
 
 pub use self::{
 	call_executor::LocalCallExecutor,

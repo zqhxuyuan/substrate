@@ -80,6 +80,14 @@ tracing-futures = { version = "0.2.4" }
 parity-util-mem = { version = "0.9.0", default-features = false, features = ["primitive-types"] }
 async-trait = "0.1.42"
 sp-authority-discovery = { version = "3.0.0",  path = "../../primitives/authority-discovery" }
+frame-executive = { version = "3.0.0", path = "../../frame/executive" }
+frame-support = { version = "3.0.0", path = "../../frame/support" }
+#sc-finality-grandpa = { version = "0.9.0", path = "../finality-grandpa" }
+#sp-finality-grandpa = { version = "3.0.0", path = "../../primitives/finality-grandpa" }
+#sp-consensus-babe = { version = "0.9.0", path = "../../primitives/consensus/babe" }
+pallet-grandpa = { version = "3.0.0", path = "../../frame/grandpa" }
+pallet-babe = { version = "3.0.0", path = "../../frame/babe" }
+sp-consensus-babe = { version = "0.9.0", path = "../../primitives/consensus/babe" }
 
 [target.'cfg(not(target_os = "unknown"))'.dependencies]
 tempfile = "3.1.0"
@@ -88,7 +96,6 @@ directories = "3.0.1"
 [dev-dependencies]
 substrate-test-runtime-client = { version = "2.0.0", path = "../../test-utils/runtime/client" }
 substrate-test-runtime = { version = "2.0.0", path = "../../test-utils/runtime/" }
-sp-consensus-babe = { version = "0.9.0", path = "../../primitives/consensus/babe" }
 grandpa = { version = "0.9.0", package = "sc-finality-grandpa", path = "../finality-grandpa" }
 grandpa-primitives = { version = "3.0.0", package = "sp-finality-grandpa", path = "../../primitives/finality-grandpa" }
 tokio = { version = "0.2.25", default-features = false }

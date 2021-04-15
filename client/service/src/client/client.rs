@@ -119,7 +119,7 @@ pub struct Client<B, E, Block> where Block: BlockT {
 	execution_extensions: ExecutionExtensions<Block>,
 	config: ClientConfig,
 	telemetry: Option<TelemetryHandle>,
-	// _phantom: PhantomData<RA>,
+	// _phantom: PhantomData<C>,
 }
 
 // used in importing a block, where additional changes are made after the runtime
@@ -1628,14 +1628,18 @@ impl<B, E, Block> ProvideCache<Block> for Client<B, E, Block> where
 	}
 }
 
-impl<B, E, Block> ProvideRuntimeApi<Block> for Client<B, E, Block> where
+impl<B, E, Block,C> ProvideRuntimeApi<Block> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block, Backend = B> + Send + Sync,
 	Block: BlockT,
+	C: CallApiAt<Block> + 'static,
+	C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
-	type Api = MockRuntimeAPi<Block>;
+	type Api = MockRuntimeAPi<C, Block>;
 	fn runtime_api<'a>(&'a self) -> ApiRef<'a, Self::Api> {
 		MockRuntimeAPi {
+			call: &self,
+			// call: unsafe { std::mem::transmute(self) },
 			_ph: Default::default()
 		}.into()
 	}

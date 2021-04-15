@@ -6,7 +6,7 @@ members = [
 #	"bin/node-template/pallets/template",
 #	"bin/node-template/runtime",
 	"bin/node/bench",
-	"bin/node/browser-testing",
+#	"bin/node/browser-testing",
 	"bin/node/cli",
 	"bin/node/test-runner-example",
 	"bin/node/executor",
