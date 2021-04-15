@@ -36,7 +36,7 @@ use crate::{
 use codec::{Decode, Encode};
 use futures::{channel::mpsc, prelude::*, stream::FuturesUnordered};
 use libp2p::{multiaddr, PeerId};
-use log::{trace, debug, warn};
+use log::{trace, debug, warn, error};
 use prometheus_endpoint::{
 	Registry, Counter, PrometheusError, register, U64
 };
@@ -155,7 +155,7 @@ impl TransactionsHandlerPrototype {
 		self,
 		service: Arc<NetworkService<B, H>>,
 		local_role: config::Role,
-		transaction_pool: Arc<dyn TransactionPool<H, B>>,
+		// transaction_pool: Arc<dyn TransactionPool<H, B>>,
 		metrics_registry: Option<&Registry>,
 	) -> error::Result<(TransactionsHandler<B, H>, TransactionsHandlerController<H>)> {
 		let event_stream = service.event_stream("transactions-handler").boxed();
@@ -171,7 +171,7 @@ impl TransactionsHandlerPrototype {
 			service,
 			event_stream,
 			peers: HashMap::new(),
-			transaction_pool,
+			// transaction_pool,
 			local_role,
 			from_controller,
 			metrics: if let Some(r) = metrics_registry {
@@ -242,7 +242,7 @@ pub struct TransactionsHandler<B: BlockT + 'static, H: ExHashT> {
 	event_stream: Pin<Box<dyn Stream<Item = Event> + Send>>,
 	// All connected peers
 	peers: HashMap<PeerId, Peer<H>>,
-	transaction_pool: Arc<dyn TransactionPool<H, B>>,
+	// transaction_pool: Arc<dyn TransactionPool<H, B>>,
 	gossip_enabled: Arc<AtomicBool>,
 	local_role: config::Role,
 	from_controller: mpsc::UnboundedReceiver<ToHandler<H>>,
@@ -358,51 +358,52 @@ impl<B: BlockT + 'static, H: ExHashT> TransactionsHandler<B, H> {
 		who: PeerId,
 		transactions: message::Transactions<B::Extrinsic>,
 	) {
+		error!("on_transactions not supported in sync/archive mode!");
 		// sending transaction to light node is considered a bad behavior
-		if matches!(self.local_role, config::Role::Light) {
-			debug!(target: "sync", "Peer {} is trying to send transactions to the light node", who);
-			self.service.disconnect_peer(who, self.protocol_name.clone());
-			self.service.report_peer(who, rep::UNEXPECTED_TRANSACTIONS);
-			return;
-		}
-
-		// Accept transactions only when enabled
-		if !self.gossip_enabled.load(Ordering::Relaxed) {
-			trace!(target: "sync", "{} Ignoring transactions while disabled", who);
-			return;
-		}
-
-		trace!(target: "sync", "Received {} transactions from {}", transactions.len(), who);
-		if let Some(ref mut peer) = self.peers.get_mut(&who) {
-			for t in transactions {
-				if self.pending_transactions.len() > MAX_PENDING_TRANSACTIONS {
-					debug!(
-						target: "sync",
-						"Ignoring any further transactions that exceed `MAX_PENDING_TRANSACTIONS`({}) limit",
-						MAX_PENDING_TRANSACTIONS,
-					);
-					break;
-				}
-
-				let hash = self.transaction_pool.hash_of(&t);
-				peer.known_transactions.insert(hash.clone());
-
-				self.service.report_peer(who.clone(), rep::ANY_TRANSACTION);
-
-				match self.pending_transactions_peers.entry(hash.clone()) {
-					Entry::Vacant(entry) => {
-						self.pending_transactions.push(PendingTransaction {
-							validation: self.transaction_pool.import(t),
-							tx_hash: hash,
-						});
-						entry.insert(vec![who.clone()]);
-					},
-					Entry::Occupied(mut entry) => {
-						entry.get_mut().push(who.clone());
-					}
-				}
-			}
-		}
+		// if matches!(self.local_role, config::Role::Light) {
+		// 	debug!(target: "sync", "Peer {} is trying to send transactions to the light node", who);
+		// 	self.service.disconnect_peer(who, self.protocol_name.clone());
+		// 	self.service.report_peer(who, rep::UNEXPECTED_TRANSACTIONS);
+		// 	return;
+		// }
+		//
+		// // Accept transactions only when enabled
+		// if !self.gossip_enabled.load(Ordering::Relaxed) {
+		// 	trace!(target: "sync", "{} Ignoring transactions while disabled", who);
+		// 	return;
+		// }
+		//
+		// trace!(target: "sync", "Received {} transactions from {}", transactions.len(), who);
+		// if let Some(ref mut peer) = self.peers.get_mut(&who) {
+		// 	for t in transactions {
+		// 		if self.pending_transactions.len() > MAX_PENDING_TRANSACTIONS {
+		// 			debug!(
+		// 				target: "sync",
+		// 				"Ignoring any further transactions that exceed `MAX_PENDING_TRANSACTIONS`({}) limit",
+		// 				MAX_PENDING_TRANSACTIONS,
+		// 			);
+		// 			break;
+		// 		}
+		//
+		// 		let hash = self.transaction_pool.hash_of(&t);
+		// 		peer.known_transactions.insert(hash.clone());
+		//
+		// 		self.service.report_peer(who.clone(), rep::ANY_TRANSACTION);
+		//
+		// 		match self.pending_transactions_peers.entry(hash.clone()) {
+		// 			Entry::Vacant(entry) => {
+		// 				self.pending_transactions.push(PendingTransaction {
+		// 					validation: self.transaction_pool.import(t),
+		// 					tx_hash: hash,
+		// 				});
+		// 				entry.insert(vec![who.clone()]);
+		// 			},
+		// 			Entry::Occupied(mut entry) => {
+		// 				entry.get_mut().push(who.clone());
+		// 			}
+		// 		}
+		// 	}
+		// }
 	}
 
 	fn on_handle_transaction_import(&mut self, who: PeerId, import: TransactionImport) {
@@ -419,15 +420,16 @@ impl<B: BlockT + 'static, H: ExHashT> TransactionsHandler<B, H> {
 		&mut self,
 		hash: &H,
 	) {
-		debug!(target: "sync", "Propagating transaction [{:?}]", hash);
-		// Accept transactions only when enabled
-		if !self.gossip_enabled.load(Ordering::Relaxed) {
-			return;
-		}
-		if let Some(transaction) = self.transaction_pool.transaction(hash) {
-			let propagated_to = self.do_propagate_transactions(&[(hash.clone(), transaction)]);
-			self.transaction_pool.on_broadcasted(propagated_to);
-		}
+		error!("propagate_transaction not supported in archive mode!")
+		// debug!(target: "sync", "Propagating transaction [{:?}]", hash);
+		// // Accept transactions only when enabled
+		// if !self.gossip_enabled.load(Ordering::Relaxed) {
+		// 	return;
+		// }
+		// if let Some(transaction) = self.transaction_pool.transaction(hash) {
+		// 	let propagated_to = self.do_propagate_transactions(&[(hash.clone(), transaction)]);
+		// 	self.transaction_pool.on_broadcasted(propagated_to);
+		// }
 	}
 
 	fn do_propagate_transactions(
@@ -480,9 +482,10 @@ impl<B: BlockT + 'static, H: ExHashT> TransactionsHandler<B, H> {
 		if !self.gossip_enabled.load(Ordering::Relaxed) {
 			return;
 		}
-		debug!(target: "sync", "Propagating transactions");
-		let transactions = self.transaction_pool.transactions();
-		let propagated_to = self.do_propagate_transactions(&transactions);
-		self.transaction_pool.on_broadcasted(propagated_to);
+		error!("propagate_transactions not supported in archive mode!");
+		// debug!(target: "sync", "Propagating transactions");
+		// let transactions = self.transaction_pool.transactions();
+		// let propagated_to = self.do_propagate_transactions(&transactions);
+		// self.transaction_pool.on_broadcasted(propagated_to);
 	}
 }

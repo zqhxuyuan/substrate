@@ -60,7 +60,7 @@ use std::{
 use zeroize::Zeroize;
 
 /// Network initialization parameters.
-pub struct Params<B: BlockT, H: ExHashT> {
+pub struct Params<B: BlockT> {
 	/// Assigned role for our node (full, light, ...).
 	pub role: Role,
 
@@ -86,7 +86,7 @@ pub struct Params<B: BlockT, H: ExHashT> {
 	///
 	/// The network worker will fetch transactions from this object in order to propagate them on
 	/// the network.
-	pub transaction_pool: Arc<dyn TransactionPool<H, B>>,
+	// pub transaction_pool: Arc<dyn TransactionPool<H, B>>,
 
 	/// Name of the protocol to use on the wire. Should be different for each chain.
 	pub protocol_id: ProtocolId,

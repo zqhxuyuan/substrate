@@ -66,7 +66,7 @@ pub struct Node<T: ChainInfo> {
 	/// handle to the running node.
 	_task_manager: Option<TaskManager>,
 	/// client instance
-	client: Arc<TFullClient<T::Block, T::RuntimeApi, T::Executor>>,
+	client: Arc<TFullClient<T::Block, T::Executor>>,
 	/// transaction pool
 	pool: Arc<
 		dyn TransactionPool<
@@ -105,7 +105,7 @@ impl<T: ChainInfo> Node<T> {
 	/// Starts a node with the manual-seal authorship.
 	pub fn new(node_config: NodeConfig) -> Result<Self, sc_service::Error>
 	where
-		<T::RuntimeApi as ConstructRuntimeApi<T::Block, TFullClient<T::Block, T::RuntimeApi, T::Executor>>>::RuntimeApi:
+		<T::RuntimeApi as ConstructRuntimeApi<T::Block, TFullClient<T::Block, T::Executor>>>::RuntimeApi:
 			Core<T::Block>
 				+ Metadata<T::Block>
 				+ OffchainWorkerApi<T::Block>
@@ -235,7 +235,7 @@ impl<T: ChainInfo> Node<T> {
 			let params = BuildNetworkParams {
 				config: &config,
 				client: client.clone(),
-				transaction_pool: transaction_pool.clone(),
+				// transaction_pool: transaction_pool.clone(),
 				spawn_handle: task_manager.spawn_handle(),
 				import_queue,
 				on_demand: None,
@@ -264,7 +264,7 @@ impl<T: ChainInfo> Node<T> {
 				task_manager: &mut task_manager,
 				keystore,
 				on_demand: None,
-				transaction_pool: transaction_pool.clone(),
+				// transaction_pool: transaction_pool.clone(),
 				rpc_extensions_builder: Box::new(move |_, _| jsonrpc_core::IoHandler::default()),
 				remote_blockchain: None,
 				network,
@@ -315,7 +315,7 @@ impl<T: ChainInfo> Node<T> {
 	}
 
 	/// Return a reference to the Client
-	pub fn client(&self) -> Arc<TFullClient<T::Block, T::RuntimeApi, T::Executor>> {
+	pub fn client(&self) -> Arc<TFullClient<T::Block, T::Executor>> {
 		self.client.clone()
 	}
 

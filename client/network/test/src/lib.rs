@@ -781,7 +781,7 @@ pub trait TestNetFactory: Sized where <Self::BlockImport as BlockImport<Block>>:
 			network_config,
 			chain: client.clone(),
 			on_demand: None,
-			transaction_pool: Arc::new(EmptyTransactionPool),
+			// transaction_pool: Arc::new(EmptyTransactionPool),
 			protocol_id,
 			import_queue,
 			block_announce_validator: config.block_announce_validator
@@ -872,7 +872,7 @@ pub trait TestNetFactory: Sized where <Self::BlockImport as BlockImport<Block>>:
 			network_config,
 			chain: client.clone(),
 			on_demand: None,
-			transaction_pool: Arc::new(EmptyTransactionPool),
+			// transaction_pool: Arc::new(EmptyTransactionPool),
 			protocol_id,
 			import_queue,
 			block_announce_validator: Box::new(DefaultBlockAnnounceValidator),

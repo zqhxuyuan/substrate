@@ -161,7 +161,7 @@ impl<Block: BlockT> NetworkStatusSinks<Block> {
 }
 
 /// An incomplete set of chain components, but enough to run the chain ops subcommands.
-pub struct PartialComponents<Client, Backend, SelectChain, ImportQueue, TransactionPool, Other> {
+pub struct PartialComponents<Client, Backend, SelectChain, ImportQueue, Other> {
 	/// A shared client instance.
 	pub client: Arc<Client>,
 	/// A shared backend instance.
@@ -175,7 +175,7 @@ pub struct PartialComponents<Client, Backend, SelectChain, ImportQueue, Transact
 	/// An import queue.
 	pub import_queue: ImportQueue,
 	/// A shared transaction pool.
-	pub transaction_pool: Arc<TransactionPool>,
+	// pub transaction_pool: Arc<TransactionPool>,
 	/// A registry of all providers of `InherentData`.
 	pub inherent_data_providers: sp_inherents::InherentDataProviders,
 	/// Everything else that needs to be passed into the main build function.

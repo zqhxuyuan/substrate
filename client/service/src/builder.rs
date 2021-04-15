@@ -479,7 +479,7 @@ pub fn new_client<E, Block>(
 }
 
 /// Parameters to pass into `build`.
-pub struct SpawnTasksParams<'a, TBl: BlockT, TCl, TExPool, TRpc, Backend> {
+pub struct SpawnTasksParams<'a, TBl: BlockT, TCl, TRpc, Backend> {
 	/// The service configuration.
 	pub config: Configuration,
 	/// A shared client returned by `new_full_parts`/`new_light_parts`.
@@ -493,7 +493,7 @@ pub struct SpawnTasksParams<'a, TBl: BlockT, TCl, TExPool, TRpc, Backend> {
 	/// An optional, shared data fetcher for light clients.
 	pub on_demand: Option<Arc<OnDemand<TBl>>>,
 	/// A shared transaction pool.
-	pub transaction_pool: Arc<TExPool>,
+	// pub transaction_pool: Arc<TExPool>,
 	/// A RPC extension builder. Use `NoopRpcExtensionBuilder` if you just want to pass in the
 	/// extensions directly.
 	pub rpc_extensions_builder: Box<dyn RpcExtensionBuilder<Output = TRpc> + Send>,
@@ -541,8 +541,8 @@ pub fn build_offchain_workers<TBl, TCl>(
 }
 
 /// Spawn the tasks that are required to run a node.
-pub fn spawn_tasks<TBl, TBackend, TExPool, TRpc, TCl>(
-	params: SpawnTasksParams<TBl, TCl, TExPool, TRpc, TBackend>,
+pub fn spawn_tasks<TBl, TBackend, TRpc, TCl>(
+	params: SpawnTasksParams<TBl, TCl, TRpc, TBackend>,
 ) -> Result<RpcHandlers, Error>
 	where
 		TCl: ProvideRuntimeApi<TBl> + HeaderMetadata<TBl, Error=sp_blockchain::Error> + Chain<TBl> +
@@ -552,13 +552,12 @@ pub fn spawn_tasks<TBl, TBackend, TExPool, TRpc, TCl>(
 		<TCl as ProvideRuntimeApi<TBl>>::Api:
 			sp_api::Metadata<TBl> +
 			// sc_offchain::OffchainWorkerApi<TBl> +
-			sp_transaction_pool::runtime_api::TaggedTransactionQueue<TBl> +
+			// sp_transaction_pool::runtime_api::TaggedTransactionQueue<TBl> +
 			sp_session::SessionKeys<TBl> +
 			sp_api::ApiExt<TBl, StateBackend = TBackend::State>,
 		TBl: BlockT,
 		TBackend: 'static + sc_client_api::backend::Backend<TBl> + Send,
-		TExPool: MaintainedTransactionPool<Block=TBl, Hash = <TBl as BlockT>::Hash> +
-			MallocSizeOfWasm + 'static,
+		// TExPool: MaintainedTransactionPool<Block=TBl, Hash = <TBl as BlockT>::Hash> + MallocSizeOfWasm + 'static,
 		TRpc: sc_rpc::RpcExtension<sc_rpc::Metadata>
 {
 	let SpawnTasksParams {
@@ -568,7 +567,7 @@ pub fn spawn_tasks<TBl, TBackend, TExPool, TRpc, TCl>(
 		on_demand,
 		backend,
 		keystore,
-		transaction_pool,
+		// transaction_pool,
 		rpc_extensions_builder,
 		remote_blockchain,
 		network,
@@ -601,19 +600,19 @@ pub fn spawn_tasks<TBl, TBackend, TExPool, TRpc, TCl>(
 	let spawn_handle = task_manager.spawn_handle();
 
 	// Inform the tx pool about imported and finalized blocks.
-	spawn_handle.spawn(
-		"txpool-notifications",
-		sc_transaction_pool::notification_future(client.clone(), transaction_pool.clone()),
-	);
-
-	spawn_handle.spawn(
-		"on-transaction-imported",
-		transaction_notifications(
-			transaction_pool.clone(),
-			network.clone(),
-			telemetry.clone(),
-		),
-	);
+	// spawn_handle.spawn(
+	// 	"txpool-notifications",
+	// 	sc_transaction_pool::notification_future(client.clone(), transaction_pool.clone()),
+	// );
+	//
+	// spawn_handle.spawn(
+	// 	"on-transaction-imported",
+	// 	transaction_notifications(
+	// 		transaction_pool.clone(),
+	// 		network.clone(),
+	// 		telemetry.clone(),
+	// 	),
+	// );
 
 	// Prometheus metrics.
 	let metrics_service = if let Some(PrometheusConfig { port, registry }) =
@@ -631,14 +630,15 @@ pub fn spawn_tasks<TBl, TBackend, TExPool, TRpc, TCl>(
 		MetricsService::new(telemetry.clone())
 	};
 
+	// TODO enable after tx_pool remove still works
 	// Periodically updated metrics and telemetry updates.
-	spawn_handle.spawn("telemetry-periodic-send",
-		metrics_service.run(
-			client.clone(),
-			transaction_pool.clone(),
-			network_status_sinks.clone()
-		)
-	);
+	// spawn_handle.spawn("telemetry-periodic-send",
+	// 	metrics_service.run(
+	// 		client.clone(),
+	// 		transaction_pool.clone(),
+	// 		network_status_sinks.clone()
+	// 	)
+	// );
 
 	// RPC
 	let gen_handler = |
@@ -646,7 +646,8 @@ pub fn spawn_tasks<TBl, TBackend, TExPool, TRpc, TCl>(
 		rpc_middleware: sc_rpc_server::RpcMiddleware
 	| gen_handler(
 		deny_unsafe, rpc_middleware, &config, task_manager.spawn_handle(),
-		client.clone(), transaction_pool.clone(), keystore.clone(),
+		// client.clone(), transaction_pool.clone(), keystore.clone(),
+		client.clone(), keystore.clone(),
 		on_demand.clone(), remote_blockchain.clone(), &*rpc_extensions_builder,
 		backend.offchain_storage(), system_rpc_tx.clone()
 	);
@@ -659,12 +660,12 @@ pub fn spawn_tasks<TBl, TBackend, TExPool, TRpc, TCl>(
 	).into()));
 
 	// Spawn informant task
-	spawn_handle.spawn("informant", sc_informant::build(
-		client.clone(),
-		network_status_sinks.status.clone(),
-		transaction_pool.clone(),
-		config.informant_output_format,
-	));
+	// spawn_handle.spawn("informant", sc_informant::build(
+	// 	client.clone(),
+	// 	network_status_sinks.status.clone(),
+	// 	transaction_pool.clone(),
+	// 	config.informant_output_format,
+	// ));
 
 	task_manager.keep_alive((config.base_path, rpc, rpc_handlers.clone()));
 
@@ -724,13 +725,13 @@ fn init_telemetry<TBl: BlockT, TCl: BlockBackend<TBl>>(
 	Ok(telemetry.handle())
 }
 
-fn gen_handler<TBl, TBackend, TExPool, TRpc, TCl>(
+fn gen_handler<TBl, TBackend, TRpc, TCl>(
 	deny_unsafe: sc_rpc::DenyUnsafe,
 	rpc_middleware: sc_rpc_server::RpcMiddleware,
 	config: &Configuration,
 	spawn_handle: SpawnTaskHandle,
 	client: Arc<TCl>,
-	transaction_pool: Arc<TExPool>,
+	// transaction_pool: Arc<TExPool>,
 	keystore: SyncCryptoStorePtr,
 	on_demand: Option<Arc<OnDemand<TBl>>>,
 	remote_blockchain: Option<Arc<dyn RemoteBlockchain<TBl>>>,
@@ -744,7 +745,7 @@ fn gen_handler<TBl, TBackend, TExPool, TRpc, TCl>(
 		HeaderMetadata<TBl, Error=sp_blockchain::Error> + ExecutorProvider<TBl> +
 		CallApiAt<TBl> + ProofProvider<TBl> +
 		StorageProvider<TBl, TBackend> + BlockBackend<TBl> + Send + Sync + 'static,
-		TExPool: MaintainedTransactionPool<Block=TBl, Hash = <TBl as BlockT>::Hash> + 'static,
+		// TExPool: MaintainedTransactionPool<Block=TBl, Hash = <TBl as BlockT>::Hash> + 'static,
 		TBackend: sc_client_api::backend::Backend<TBl> + 'static,
 		TRpc: sc_rpc::RpcExtension<sc_rpc::Metadata>,
 		<TCl as ProvideRuntimeApi<TBl>>::Api:
@@ -793,13 +794,13 @@ fn gen_handler<TBl, TBackend, TExPool, TRpc, TCl>(
 		(chain, state, child_state)
 	};
 
-	let author = sc_rpc::author::Author::new(
-		client,
-		transaction_pool,
-		subscriptions,
-		keystore,
-		deny_unsafe,
-	);
+	// let author = sc_rpc::author::Author::new(
+	// 	client,
+	// 	transaction_pool,
+	// 	subscriptions,
+	// 	keystore,
+	// 	deny_unsafe,
+	// );
 	let system = system::System::new(system_info, system_rpc_tx, deny_unsafe);
 
 	let maybe_offchain_rpc = offchain_storage.map(|storage| {
@@ -813,7 +814,7 @@ fn gen_handler<TBl, TBackend, TExPool, TRpc, TCl>(
 			state::ChildStateApi::to_delegate(child_state),
 			chain::ChainApi::to_delegate(chain),
 			maybe_offchain_rpc,
-			author::AuthorApi::to_delegate(author),
+			// author::AuthorApi::to_delegate(author),
 			system::SystemApi::to_delegate(system),
 			rpc_extensions_builder.build(deny_unsafe, task_executor),
 		),
@@ -822,13 +823,13 @@ fn gen_handler<TBl, TBackend, TExPool, TRpc, TCl>(
 }
 
 /// Parameters to pass into `build_network`.
-pub struct BuildNetworkParams<'a, TBl: BlockT, TExPool, TImpQu, TCl> {
+pub struct BuildNetworkParams<'a, TBl: BlockT, TImpQu, TCl> {
 	/// The service configuration.
 	pub config: &'a Configuration,
 	/// A shared client returned by `new_full_parts`/`new_light_parts`.
 	pub client: Arc<TCl>,
 	/// A shared transaction pool.
-	pub transaction_pool: Arc<TExPool>,
+	// pub transaction_pool: Arc<TExPool>,
 	/// A handle for spawning tasks.
 	pub spawn_handle: SpawnTaskHandle,
 	/// An import queue.
@@ -842,8 +843,8 @@ pub struct BuildNetworkParams<'a, TBl: BlockT, TExPool, TImpQu, TCl> {
 }
 
 /// Build the network service, the network status sinks and an RPC sender.
-pub fn build_network<TBl, TExPool, TImpQu, TCl>(
-	params: BuildNetworkParams<TBl, TExPool, TImpQu, TCl>
+pub fn build_network<TBl, TImpQu, TCl>(
+	params: BuildNetworkParams<TBl, TImpQu, TCl>
 ) -> Result<
 	(
 		Arc<NetworkService<TBl, <TBl as BlockT>::Hash>>,
@@ -858,19 +859,20 @@ pub fn build_network<TBl, TExPool, TImpQu, TCl>(
 		TCl: ProvideRuntimeApi<TBl> + HeaderMetadata<TBl, Error=sp_blockchain::Error> + Chain<TBl> +
 		BlockBackend<TBl> + BlockIdTo<TBl, Error=sp_blockchain::Error> + ProofProvider<TBl> +
 		HeaderBackend<TBl> + BlockchainEvents<TBl> + 'static,
-		TExPool: MaintainedTransactionPool<Block=TBl, Hash = <TBl as BlockT>::Hash> + 'static,
+		// TExPool: MaintainedTransactionPool<Block=TBl, Hash = <TBl as BlockT>::Hash> + 'static,
 		TImpQu: ImportQueue<TBl> + 'static,
 {
 	let BuildNetworkParams {
-		config, client, transaction_pool, spawn_handle, import_queue, on_demand,
+		// config, client, transaction_pool, spawn_handle, import_queue, on_demand,
+		config, client, spawn_handle, import_queue, on_demand,
 		block_announce_validator_builder,
 	} = params;
 
-	let transaction_pool_adapter = Arc::new(TransactionPoolAdapter {
-		imports_external_transactions: !matches!(config.role, Role::Light),
-		pool: transaction_pool,
-		client: client.clone(),
-	});
+	// let transaction_pool_adapter = Arc::new(TransactionPoolAdapter {
+	// 	imports_external_transactions: !matches!(config.role, Role::Light),
+	// 	pool: transaction_pool,
+	// 	client: client.clone(),
+	// });
 
 	let protocol_id = config.protocol_id();
 
@@ -929,7 +931,7 @@ pub fn build_network<TBl, TExPool, TImpQu, TCl>(
 		network_config: config.network.clone(),
 		chain: client.clone(),
 		on_demand: on_demand,
-		transaction_pool: transaction_pool_adapter as _,
+		// transaction_pool: transaction_pool_adapter as _,
 		import_queue: Box::new(import_queue),
 		protocol_id,
 		block_announce_validator,

@@ -72,51 +72,51 @@ pub trait TestNetNode: Clone + Future<Item = (), Error = sc_service::Error> + Se
 	type Backend: Backend<Self::Block>;
 	type Executor: CallExecutor<Self::Block> + Send + Sync;
 	type RuntimeApi: Send + Sync;
-	type TransactionPool: TransactionPool<Block = Self::Block>;
+	// type TransactionPool: TransactionPool<Block = Self::Block>;
 
-	fn client(&self) -> Arc<Client<Self::Backend, Self::Executor, Self::Block, Self::RuntimeApi>>;
-	fn transaction_pool(&self) -> Arc<Self::TransactionPool>;
+	fn client(&self) -> Arc<Client<Self::Backend, Self::Executor, Self::Block>>;
+	// fn transaction_pool(&self) -> Arc<Self::TransactionPool>;
 	fn network(&self) -> Arc<sc_network::NetworkService<Self::Block, <Self::Block as BlockT>::Hash>>;
 	fn spawn_handle(&self) -> SpawnTaskHandle;
 }
 
-pub struct TestNetComponents<TBl: BlockT, TBackend, TExec, TRtApi, TExPool> {
+pub struct TestNetComponents<TBl: BlockT, TBackend, TExec, TRtApi> {
 	task_manager: Arc<Mutex<TaskManager>>,
-	client: Arc<Client<TBackend, TExec, TBl, TRtApi>>,
-	transaction_pool: Arc<TExPool>,
+	client: Arc<Client<TBackend, TExec, TBl>>,
+	// transaction_pool: Arc<TExPool>,
 	network: Arc<sc_network::NetworkService<TBl, <TBl as BlockT>::Hash>>,
 }
 
-impl<TBl: BlockT, TBackend, TExec, TRtApi, TExPool>
-TestNetComponents<TBl, TBackend, TExec, TRtApi, TExPool> {
+impl<TBl: BlockT, TBackend, TExec, TRtApi>
+TestNetComponents<TBl, TBackend, TExec, TRtApi> {
 	pub fn new(
 		task_manager: TaskManager,
-		client: Arc<Client<TBackend, TExec, TBl, TRtApi>>,
+		client: Arc<Client<TBackend, TExec, TBl>>,
 		network: Arc<sc_network::NetworkService<TBl, <TBl as BlockT>::Hash>>,
-		transaction_pool: Arc<TExPool>,
+		// transaction_pool: Arc<TExPool>,
 	) -> Self {
 		Self {
-			client, transaction_pool, network,
+			client, network,
 			task_manager: Arc::new(Mutex::new(task_manager)),
 		}
 	}
 }
 
 
-impl<TBl: BlockT, TBackend, TExec, TRtApi, TExPool> Clone for
-TestNetComponents<TBl, TBackend, TExec, TRtApi, TExPool> {
+impl<TBl: BlockT, TBackend, TExec, TRtApi> Clone for
+TestNetComponents<TBl, TBackend, TExec, TRtApi> {
 	fn clone(&self) -> Self {
 		Self {
 			task_manager: self.task_manager.clone(),
 			client: self.client.clone(),
-			transaction_pool: self.transaction_pool.clone(),
+			// transaction_pool: self.transaction_pool.clone(),
 			network: self.network.clone(),
 		}
 	}
 }
 
-impl<TBl: BlockT, TBackend, TExec, TRtApi, TExPool> Future for
-	TestNetComponents<TBl, TBackend, TExec, TRtApi, TExPool>
+impl<TBl: BlockT, TBackend, TExec, TRtApi> Future for
+	TestNetComponents<TBl, TBackend, TExec, TRtApi>
 {
 	type Item = ();
 	type Error = sc_service::Error;
@@ -126,27 +126,27 @@ impl<TBl: BlockT, TBackend, TExec, TRtApi, TExPool> Future for
 	}
 }
 
-impl<TBl, TBackend, TExec, TRtApi, TExPool> TestNetNode for
-TestNetComponents<TBl, TBackend, TExec, TRtApi, TExPool>
+impl<TBl, TBackend, TExec, TRtApi> TestNetNode for
+TestNetComponents<TBl, TBackend, TExec, TRtApi>
 	where
 		TBl: BlockT,
 		TBackend: sc_client_api::Backend<TBl> + Send + Sync + 'static,
 		TExec: CallExecutor<TBl> + Send + Sync + 'static,
 		TRtApi: Send + Sync + 'static,
-		TExPool: TransactionPool<Block = TBl> + Send + Sync + 'static,
+		// TExPool: TransactionPool<Block = TBl> + Send + Sync + 'static,
 {
 	type Block = TBl;
 	type Backend = TBackend;
 	type Executor = TExec;
 	type RuntimeApi = TRtApi;
-	type TransactionPool = TExPool;
+	// type TransactionPool = TExPool;
 
-	fn client(&self) -> Arc<Client<Self::Backend, Self::Executor, Self::Block, Self::RuntimeApi>> {
+	fn client(&self) -> Arc<Client<Self::Backend, Self::Executor, Self::Block>> {
 		self.client.clone()
 	}
-	fn transaction_pool(&self) -> Arc<Self::TransactionPool> {
-		self.transaction_pool.clone()
-	}
+	// fn transaction_pool(&self) -> Arc<Self::TransactionPool> {
+	// 	self.transaction_pool.clone()
+	// }
 	fn network(&self) -> Arc<sc_network::NetworkService<Self::Block, <Self::Block as BlockT>::Hash>> {
 		self.network.clone()
 	}

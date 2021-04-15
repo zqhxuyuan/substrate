@@ -52,11 +52,11 @@ use sp_transaction_pool::TransactionPool;
 use sc_client_api::AuxStore;
 
 /// Light client extra dependencies.
-pub struct LightDeps<C, F, P> {
+pub struct LightDeps<C, F> {
 	/// The client instance to use.
 	pub client: Arc<C>,
 	/// Transaction pool instance.
-	pub pool: Arc<P>,
+	// pub pool: Arc<P>,
 	/// Remote access to the blockchain (async).
 	pub remote_blockchain: Arc<dyn sc_client_api::light::RemoteBlockchain<Block>>,
 	/// Fetcher instance.
@@ -88,11 +88,11 @@ pub struct GrandpaDeps<B> {
 }
 
 /// Full client dependencies.
-pub struct FullDeps<C, P, SC, B> {
+pub struct FullDeps<C, SC, B> {
 	/// The client instance to use.
 	pub client: Arc<C>,
 	/// Transaction pool instance.
-	pub pool: Arc<P>,
+	// pub pool: Arc<P>,
 	/// The SelectChain Strategy
 	pub select_chain: SC,
 	/// A copy of the chain spec.
@@ -109,8 +109,8 @@ pub struct FullDeps<C, P, SC, B> {
 pub type IoHandler = jsonrpc_core::IoHandler<sc_rpc::Metadata>;
 
 /// Instantiate all Full RPC extensions.
-pub fn create_full<C, P, SC, B>(
-	_: FullDeps<C, P, SC, B>,
+pub fn create_full<C, SC, B>(
+	_: FullDeps<C, SC, B>,
 ) -> jsonrpc_core::IoHandler<sc_rpc_api::Metadata> where
 	C: ProvideRuntimeApi<Block> + HeaderBackend<Block> + AuxStore +
 		HeaderMetadata<Block, Error=BlockChainError> + Sync + Send + 'static,
@@ -120,7 +120,7 @@ pub fn create_full<C, P, SC, B>(
 	// C::Api: pallet_transaction_payment_rpc::TransactionPaymentRuntimeApi<Block, Balance>,
 	C::Api: BabeApi<Block>,
 	C::Api: BlockBuilder<Block>,
-	P: TransactionPool + 'static,
+	// P: TransactionPool + 'static,
 	SC: SelectChain<Block> +'static,
 	B: sc_client_api::Backend<Block> + Send + Sync + 'static,
 	B::State: sc_client_api::backend::StateBackend<sp_runtime::traits::HashFor<Block>>,
@@ -209,20 +209,20 @@ pub fn create_full<C, P, SC, B>(
 }
 
 /// Instantiate all Light RPC extensions.
-pub fn create_light<C, P, M, F>(
-	deps: LightDeps<C, F, P>,
+pub fn create_light<C, M, F>(
+	deps: LightDeps<C, F>,
 ) -> jsonrpc_core::IoHandler<M> where
 	C: sp_blockchain::HeaderBackend<Block>,
 	C: Send + Sync + 'static,
 	F: sc_client_api::light::Fetcher<Block> + 'static,
-	P: TransactionPool + 'static,
+	// P: TransactionPool + 'static,
 	M: jsonrpc_core::Metadata + Default,
 {
 	use substrate_frame_rpc_system::{LightSystem, SystemApi};
 
 	let LightDeps {
 		client,
-		pool,
+		// pool,
 		remote_blockchain,
 		fetcher
 	} = deps;
