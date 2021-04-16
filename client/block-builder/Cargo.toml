@@ -25,5 +25,5 @@ sc-client-api = { version = "3.0.0", path = "../api" }
 codec = { package = "parity-scale-codec", version = "2.0.0", features = ["derive"] }
 
 [dev-dependencies]
-substrate-test-runtime-client = { path = "../../test-utils/runtime/client" }
+#substrate-test-runtime-client = { path = "../../test-utils/runtime/client" }
 sp-trie = { version = "3.0.0", path = "../../primitives/trie" }

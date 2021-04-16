@@ -21,7 +21,7 @@ sp-arithmetic = { version = "3.0.0", default-features = false, path = "../arithm
 sp-core = { version = "3.0.0", default-features = false, path = "../core" }
 
 [dev-dependencies]
-substrate-test-utils = { version = "3.0.0", path = "../../test-utils" }
+#substrate-test-utils = { version = "3.0.0", path = "../../test-utils" }
 rand = "0.7.3"
 sp-runtime = { version = "3.0.0", path = "../runtime" }
 

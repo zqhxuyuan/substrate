@@ -31,6 +31,6 @@ sp-block-builder = { version = "3.0.0", path = "../../../../primitives/block-bui
 sc-rpc-api = { version = "0.9.0", path = "../../../../client/rpc-api" }
 
 [dev-dependencies]
-substrate-test-runtime-client = { version = "2.0.0", path = "../../../../test-utils/runtime/client" }
+#substrate-test-runtime-client = { version = "2.0.0", path = "../../../../test-utils/runtime/client" }
 sp-tracing = { version = "3.0.0", path = "../../../../primitives/tracing" }
 sc-transaction-pool = { version = "3.0.0", path = "../../../../client/transaction-pool" }

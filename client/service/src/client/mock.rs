@@ -20,7 +20,7 @@ use sp_runtime::{Justification, Justifications, BuildStorage, generic::{BlockId,
     Block as BlockT, Header as HeaderT, Zero, NumberFor,
     HashFor, SaturatedConversion, One, DigestFor, UniqueSaturatedInto,
 }, ApplyExtrinsicResult, DispatchError, KeyTypeId};
-use sp_state_machine::{DBValue, Backend as StateBackend, ChangesTrieAnchorBlockId, prove_read, prove_child_read, ChangesTrieRootsStorage, ChangesTrieStorage, ChangesTrieConfigurationRange, key_changes, key_changes_proof, Backend, OverlayedChanges};
+use sp_state_machine::{DBValue, Backend as StateBackend, ChangesTrieAnchorBlockId, prove_read, prove_child_read, ChangesTrieRootsStorage, ChangesTrieStorage, ChangesTrieConfigurationRange, key_changes, key_changes_proof, Backend, OverlayedChanges, TrieBackendStorage, StorageValue, StateMachineStats, UsageInfo};
 use sc_executor::{RuntimeVersion, Codec};
 use sp_consensus::{
     Error as ConsensusError, BlockStatus, BlockImportParams, BlockCheckParams,
@@ -94,17 +94,35 @@ use frame_support::{
 };
 use crate::client::Client;
 use std::cell::RefCell;
+use sc_client_api::StateBackend as CStateBackend;
+use memory_db::{MemoryDB, PrefixedKey};
+use frame_support::sp_runtime::app_crypto::sp_core::Hasher;
+use sp_state_machine::backend::Consolidate;
 
 pub struct MockRuntimeAPi<C: 'static , Block> where
     Block: BlockT,
     C: CallApiAt<Block> + 'static + Send + Sync,
     C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>,
+    // Block::Header: HeaderT,
+    // <<C as CallApiAt<Block>>::StateBackend as CStateBackend<<HeaderT>::Hashing>>::Transaction:
+    //     memory_db::MemoryDB<<<Block as BlockT>::Header as HeaderT>::Hashing, memory_db::PrefixedKey<<<Block as BlockT>::Header as HeaderT>::Hashing>, Vec<u8>>
+        // TrieBackendStorage<<<Block as BlockT>::Header as HeaderT>::Hashing>
 {
     pub call: &'static C,
+    pub initialized_block: RefCell<Option<BlockId<Block>>>,
     pub changes: RefCell<OverlayedChanges>,
     pub storage: RefCell<StorageTransactionCache<Block, C::StateBackend>>,
+    // pub storage: RefCell<StorageTransactionCache<Block, memory_db::MemoryDB<<<Block as BlockT>::Header as HeaderT>::Hashing, memory_db::PrefixedKey<<<Block as BlockT>::Header as HeaderT>::Hashing>, Vec<u8>>>>,
+    // pub storage: RefCell<StorageTransactionCache<Block,
+    //     memory_db::MemoryDB<<<Block as BlockT>::Header as HeaderT>::Hashing, memory_db::PrefixedKey<<<Block as BlockT>::Header as HeaderT>::Hashing>, Vec<u8>>>>,
     pub(crate) _ph: PhantomData<Block>
 }
+
+// impl<Block> sp_api::StateBackend<sp_api::HashFor<Block>> for
+//     MemoryDB<<<Block as BlockT>::Header as HeaderT>::Hashing>
+//     // memory_db::MemoryDB<<<Block as BlockT>::Header as HeaderT>::Hashing, memory_db::PrefixedKey<<<Block as BlockT>::Header as HeaderT>::Hashing>, Vec<u8>>
+// where Block: BlockT {
+// }
 
 // impl<B, E, Block> From<MockRuntimeAPi<&Client<B, E, Block>, Block>>  for ApiRef<'_, MockRuntimeAPi<Client<B, E, Block>, Block>>
 //     where Block: BlockT, {
@@ -157,19 +175,34 @@ impl<C, Block> ApiExt<Block> for MockRuntimeAPi<C,Block> where
         unimplemented!()
     }
 
-    fn into_storage_changes(&self, backend: &Self::StateBackend,
+    /**
+        let state = self.backend.state_at(self.block_id)?;
+		let changes_trie_state = backend::changes_tries_state_at_block(
+			&self.block_id,
+			self.backend.changes_trie_storage(),
+		)?;
+		let parent_hash = self.parent_hash;
+
+		let storage_changes = self.client.runtime_api().into_storage_changes(
+			&state,
+			changes_trie_state.as_ref(),
+			parent_hash,
+		).map_err(|e| sp_blockchain::Error::StorageChanges(e))?;
+    */
+    fn into_storage_changes(&self,
+                            backend: &Self::StateBackend,
                             changes_trie_state: Option<&ChangesTrieState<HashFor<Block>, NumberFor<Block>>>,
                             parent_hash: <Block as BlockT>::Hash
     ) -> Result<StorageChanges<Self::StateBackend, Block>, String> where Self: Sized {
-        // self.initialized_block.borrow_mut().take();
+        self.initialized_block.borrow_mut().take();
         self.changes
             .replace(Default::default())
             .into_storage_changes(
                 backend,
                 changes_trie_state,
                 parent_hash,
-                // self.storage.replace(Default::default()),
-                Default::default(),
+                self.storage.replace(Default::default()),
+                // Default::default(),
             )
         // unimplemented!()
     }
@@ -193,12 +226,14 @@ impl<C,Block> sp_api::Core<Block> for MockRuntimeAPi<C,Block> where
         unimplemented!()
     }
     fn execute_block(&self, at: &BlockId<Block>, block: Block) -> Result<(), sp_api::ApiError> {
+        info!("call execute_block");
         // let res = Executive::execute_block(block);
         // Ok(res)
         unimplemented!()
     }
     fn initialize_block(&self, at: &BlockId<Block>, header: &<Block as BlockT>::Header) -> Result<(), sp_api::ApiError> {
-        // Executive::initialize_block(header)
+        info!("call initialize_block");
+        // Executive::initialize_block(header);
         unimplemented!()
     }
     fn Core_version_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<()>, _: Vec<u8>)
@@ -207,32 +242,43 @@ impl<C,Block> sp_api::Core<Block> for MockRuntimeAPi<C,Block> where
         unimplemented!() }
     fn Core_execute_block_runtime_api_impl(&self, at: &BlockId<Block>, context: ExecutionContext, params: std::option::Option<Block>, params_encoded: Vec<u8>)
                                            -> std::result::Result<NativeOrEncoded<()>, sp_api::ApiError> {
-        // info!("execute block at {}", at);
-        // Executive::execute_block(params.unwrap());
-        // Ok(NativeOrEncoded::Encoded(vec![]))
+        info!("call Core_execute_block_runtime_api_impl");
+        self.changes.borrow_mut().start_transaction();
         let runtime_api_impl_params_encoded = sp_api::Encode::encode(&(&params.unwrap()));
         let _changes: OverlayedChanges = Default::default();
         let _storage: StorageTransactionCache<Block, C::StateBackend> = Default::default();
+        let _initialize_block = if true {
+            InitializeBlock::Skip
+        } else {
+            InitializeBlock::Do(&self.initialized_block)
+        };
         let call_params: CallApiAtParams<'_, Block, MockRuntimeAPi<C, Block>, fn() -> Result<(), sp_api::ApiError>, <C as CallApiAt<Block>>::StateBackend>
             = CallApiAtParams {
-            core_api: self.clone(),
+            core_api: self.clone(),  // core_api is MockRuntimeApi, because MockRuntimeApi implements triat Core
             at: at,
             function: "Core_execute_block",
             native_call: None, //Some(|| -> Result<(), sp_api::ApiError>{ Ok(())}),
             arguments: runtime_api_impl_params_encoded,
             overlayed_changes: &RefCell::new(_changes),
             storage_transaction_cache: &RefCell::new(_storage),
-            initialize_block: InitializeBlock::Skip,
+            initialize_block: _initialize_block,
             context,
             recorder: &None
         };
-        self.call.call_api_at(call_params);
-        Ok(NativeOrEncoded::Encoded(vec![]))
+        // self.call is Client, because Client implements trait CallApiAt
+        let res = self.call.call_api_at(call_params);
+        if res.is_ok() {
+            self.changes.borrow_mut().commit_transaction().expect("commit error!");
+        } else {
+            self.changes.borrow_mut().rollback_transaction().expect("rollback error!");
+        }
+        res
+        // Ok(NativeOrEncoded::Encoded(vec![]))
         // unimplemented!()
     }
     fn Core_initialize_block_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<&<Block as BlockT>::Header>, _: Vec<u8>)
                                               -> std::result::Result<NativeOrEncoded<()>, sp_api::ApiError> {
-
+        info!("call Core_initialize_block");
         unimplemented!()
     }
 }
@@ -240,38 +286,41 @@ impl<C,Block> sp_api::Metadata<Block> for MockRuntimeAPi<C,Block> where
         Block: BlockT,
         C: CallApiAt<Block> + 'static + Send + Sync,
         C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
-        // <Block as BlockT>::Extrinsic: BlindCheckable,
-        // <<Block as BlockT>::Extrinsic as BlindCheckable>::Checked: Applyable
 {
     fn metadata(&self, at: &BlockId<Block>) -> Result<sp_core::OpaqueMetadata, sp_api::ApiError> {
         // Runtime::metadata().into()
+        info!("call metadata");
         unimplemented!()
     }
     fn Metadata_metadata_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<()>, _: Vec<u8>)
-                                          -> std::result::Result<NativeOrEncoded<OpaqueMetadata>, sp_api::ApiError> { unimplemented!() }
+                                          -> std::result::Result<NativeOrEncoded<OpaqueMetadata>, sp_api::ApiError> {
+        info!("call Metadata_metadata_runtime_api_impl");
+        unimplemented!() }
 }
 
 impl<C,Block> sp_block_builder::BlockBuilder<Block> for MockRuntimeAPi<C,Block> where
         Block: BlockT,
         C: CallApiAt<Block> + 'static + Send + Sync,
         C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
-        // <Block as BlockT>::Extrinsic: BlindCheckable,
-        // <<Block as BlockT>::Extrinsic as BlindCheckable>::Checked: Applyable
 {
     fn apply_extrinsic(&self, at: &BlockId<Block>, extrinsic: <Block as BlockT>::Extrinsic) -> Result<ApplyExtrinsicResult, sp_api::ApiError> {
         // Executive::apply_extrinsic(extrinsic)
+        info!("call apply_extrinsic");
         unimplemented!()
     }
     fn finalize_block(&self, at: &BlockId<Block>) -> Result<<Block as BlockT>::Header,sp_api::ApiError> {
         // Executive::finalize_block()
+        info!("call finalize_block");
         unimplemented!()
     }
     fn inherent_extrinsics(&self, at: &BlockId<Block>, data: InherentData) -> Result<Vec<<Block as BlockT>::Extrinsic>, sp_api::ApiError> {
         // data.create_extrinsics()
+        info!("call inherent_extrinsics");
         unimplemented!()
     }
     fn check_inherents(&self, at: &BlockId<Block>, block: Block, data: InherentData) -> Result<CheckInherentsResult,sp_api::ApiError> {
         // data.check_extrinsics(&block)
+        info!("call check_inherents");
         unimplemented!()
     }
     fn random_seed(&self, at: &BlockId<Block>) -> Result<<Block as BlockT>::Hash, sp_api::ApiError> {
@@ -281,18 +330,22 @@ impl<C,Block> sp_block_builder::BlockBuilder<Block> for MockRuntimeAPi<C,Block> 
 
     fn BlockBuilder_apply_extrinsic_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<<Block as BlockT>::Extrinsic>, _: Vec<u8>)
         -> std::result::Result<NativeOrEncoded<std::result::Result<std::result::Result<(), DispatchError>, TransactionValidityError>>, sp_api::ApiError> {
+        info!("call BlockBuilder_apply_extrinsic_runtime_api_impl");
         unimplemented!()
     }
     fn BlockBuilder_finalize_block_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<()>, _: Vec<u8>)
         -> std::result::Result<NativeOrEncoded<<Block as BlockT>::Header>, sp_api::ApiError> {
+        info!("call BlockBuilder_finalize_block_runtime_api_impl");
         unimplemented!()
     }
     fn BlockBuilder_inherent_extrinsics_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<sp_consensus::InherentData>, _: Vec<u8>)
         -> std::result::Result<NativeOrEncoded<Vec<<Block as BlockT>::Extrinsic>>, sp_api::ApiError> {
+        info!("call BlockBuilder_inherent_extrinsics_runtime_api_impl");
         unimplemented!()
     }
     fn BlockBuilder_check_inherents_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<(Block, sp_consensus::InherentData)>, _: Vec<u8>)
         -> std::result::Result<NativeOrEncoded<CheckInherentsResult>, sp_api::ApiError> {
+        info!("call BlockBuilder_check_inherents_runtime_api_impl");
         unimplemented!()
     }
     fn BlockBuilder_random_seed_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<()>, _: Vec<u8>)
@@ -305,8 +358,6 @@ impl<C,Block> fg_primitives::GrandpaApi<Block> for MockRuntimeAPi<C,Block> where
         Block: BlockT,
         C: CallApiAt<Block> + 'static + Send + Sync,
         C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
-        // <Block as BlockT>::Extrinsic: BlindCheckable,
-        // <<Block as BlockT>::Extrinsic as BlindCheckable>::Checked: Applyable
 {
     fn grandpa_authorities(&self, _: &BlockId<Block>,) -> Result<GrandpaAuthorityList, sp_api::ApiError> {
         // Grandpa::grandpa_authorities()
@@ -345,8 +396,6 @@ impl<C,Block> sp_consensus_babe::BabeApi<Block> for MockRuntimeAPi<C,Block> wher
         Block: BlockT,
         C: CallApiAt<Block> + 'static + Send + Sync,
         C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
-        // <Block as BlockT>::Extrinsic: BlindCheckable,
-        // <<Block as BlockT>::Extrinsic as BlindCheckable>::Checked: Applyable
 {
     fn configuration(&self, _: &BlockId<Block>,) -> Result<BabeGenesisConfiguration, sp_api::ApiError> {
         // sp_consensus_babe::BabeGenesisConfiguration {
@@ -402,8 +451,6 @@ impl<C,Block> sp_session::SessionKeys<Block> for MockRuntimeAPi<C,Block> where
         Block: BlockT,
         C: CallApiAt<Block> + 'static + Send + Sync,
         C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
-        // <Block as BlockT>::Extrinsic: BlindCheckable,
-        // <<Block as BlockT>::Extrinsic as BlindCheckable>::Checked: Applyable
 {
     fn generate_session_keys(&self, _: &BlockId<Block>,seed: Option<Vec<u8>>) -> Result<Vec<u8>, sp_api::ApiError> {
         // SessionKeys::generate(seed)

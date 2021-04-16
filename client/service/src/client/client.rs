@@ -1694,6 +1694,7 @@ impl<B, E, Block> ProvideRuntimeApi<Block> for Client<B, E, Block> where
 
 		MockRuntimeAPi {
 			call:  unsafe { std::mem::transmute(self) },
+			initialized_block: None.into(),
 			// changes: &RefCell::new(_changes),
 			// storage: &RefCell::new(_storage),
 			changes: Default::default(),

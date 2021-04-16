@@ -36,4 +36,4 @@ thiserror = "1.0.21"
 async-trait = "0.1.42"
 
 [dev-dependencies]
-substrate-test-runtime-client = { version = "2.0.0", path = "../../../test-utils/runtime/client" }
+#substrate-test-runtime-client = { version = "2.0.0", path = "../../../test-utils/runtime/client" }
