@@ -65,9 +65,6 @@ use sp_utils::mpsc::TracingUnboundedReceiver;
 pub mod gossip;
 mod periodic;
 
-#[cfg(test)]
-pub(crate) mod tests;
-
 /// Name of the notifications protocol used by Grandpa. Must be registered towards the networking
 /// in order for Grandpa to properly function.
 pub const GRANDPA_PROTOCOL_NAME: &'static str = "/paritytech/grandpa/1";

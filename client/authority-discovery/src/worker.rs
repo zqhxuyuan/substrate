@@ -52,8 +52,6 @@ use sp_api::ProvideRuntimeApi;
 mod addr_cache;
 /// Dht payload schemas generated from Protobuf definitions via Prost crate in build.rs.
 mod schema { include!(concat!(env!("OUT_DIR"), "/authority_discovery.rs")); }
-#[cfg(test)]
-pub mod tests;
 
 const LOG_TARGET: &'static str = "sub-authority-discovery";
 

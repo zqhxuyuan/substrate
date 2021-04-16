@@ -20,7 +20,7 @@ use crate::{
 	error::Error, MallocSizeOfWasm, RpcHandlers, NetworkStatusSinks,
 	start_rpc_servers, build_network_future, TransactionPoolAdapter, TaskManager, SpawnTaskHandle,
 	metrics::MetricsService,
-	client::{light, Client, ClientConfig},
+	client::{Client, ClientConfig},
 	config::{Configuration, KeystoreConfig, PrometheusConfig},
 };
 use sc_client_api::{
@@ -141,7 +141,7 @@ impl<R> From<R> for NoopRpcExtensionBuilder<R> where
 pub type TFullClient<TBl, TExecDisp> = Client<
 	TFullBackend<TBl>,
 	TFullCallExecutor<TBl, TExecDisp>,
-	TBl,
+	TBl
 >;
 
 /// Full client backend type.
@@ -153,62 +153,12 @@ pub type TFullCallExecutor<TBl, TExecDisp> = crate::client::LocalCallExecutor<
 	NativeExecutor<TExecDisp>,
 >;
 
-/// Light client type.
-pub type TLightClient<TBl, TExecDisp> = TLightClientWithBackend<
-	TBl, TExecDisp, TLightBackend<TBl>
->;
-
-/// Light client backend type.
-pub type TLightBackend<TBl> = sc_light::Backend<
-	sc_client_db::light::LightStorage<TBl>,
-	HashFor<TBl>,
->;
-
-/// Light call executor type.
-pub type TLightCallExecutor<TBl, TExecDisp> = sc_light::GenesisCallExecutor<
-	sc_light::Backend<
-		sc_client_db::light::LightStorage<TBl>,
-		HashFor<TBl>
-	>,
-	crate::client::LocalCallExecutor<
-		sc_light::Backend<
-			sc_client_db::light::LightStorage<TBl>,
-			HashFor<TBl>
-		>,
-		NativeExecutor<TExecDisp>
-	>,
->;
-
 type TFullParts<TBl, TExecDisp> = (
 	TFullClient<TBl, TExecDisp>,
 	Arc<TFullBackend<TBl>>,
 	KeystoreContainer,
 	TaskManager,
 );
-
-type TLightParts<TBl, TExecDisp> = (
-	Arc<TLightClient<TBl, TExecDisp>>,
-	Arc<TLightBackend<TBl>>,
-	KeystoreContainer,
-	TaskManager,
-	Arc<OnDemand<TBl>>,
-);
-
-/// Light client backend type with a specific hash type.
-pub type TLightBackendWithHash<TBl, THash> = sc_light::Backend<
-	sc_client_db::light::LightStorage<TBl>,
-	THash,
->;
-
-/// Light client type with a specific backend.
-pub type TLightClientWithBackend<TBl, TExecDisp, TBackend> = Client<
-	TBackend,
-	sc_light::GenesisCallExecutor<
-		TBackend,
-		crate::client::LocalCallExecutor<TBackend, NativeExecutor<TExecDisp>>,
-	>,
-	TBl,
->;
 
 trait AsCryptoStoreRef {
 	fn keystore_ref(&self) -> Arc<dyn CryptoStore>;
@@ -293,6 +243,8 @@ pub fn new_full_client<TBl, TExecDisp>(
 ) -> Result<TFullClient<TBl, TExecDisp>, Error> where
 	TBl: BlockT,
 	TExecDisp: NativeExecutionDispatch + 'static,
+	// C: CallApiAt<TBl> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<TBl>,>
 {
 	new_full_parts(config, telemetry).map(|parts| parts.0)
 }
@@ -304,6 +256,8 @@ pub fn new_full_parts<TBl, TExecDisp>(
 ) -> Result<TFullParts<TBl, TExecDisp>,	Error> where
 	TBl: BlockT,
 	TExecDisp: NativeExecutionDispatch + 'static,
+	// C: CallApiAt<TBl> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<TBl>,>
 {
 	let keystore_container = KeystoreContainer::new(&config.keystore)?;
 
@@ -375,60 +329,6 @@ pub fn new_full_parts<TBl, TExecDisp>(
 	))
 }
 
-/// Create the initial parts of a light node.
-pub fn new_light_parts<TBl, TExecDisp>(
-	config: &Configuration,
-	telemetry: Option<TelemetryHandle>,
-) -> Result<TLightParts<TBl, TExecDisp>, Error> where
-	TBl: BlockT,
-	TExecDisp: NativeExecutionDispatch + 'static,
-{
-	let keystore_container = KeystoreContainer::new(&config.keystore)?;
-	let task_manager = {
-		let registry = config.prometheus_config.as_ref().map(|cfg| &cfg.registry);
-		TaskManager::new(config.task_executor.clone(), registry)?
-	};
-
-	let executor = NativeExecutor::<TExecDisp>::new(
-		config.wasm_method,
-		config.default_heap_pages,
-		config.max_runtime_instances,
-	);
-
-	let db_storage = {
-		let db_settings = sc_client_db::DatabaseSettings {
-			state_cache_size: config.state_cache_size,
-			state_cache_child_ratio:
-				config.state_cache_child_ratio.map(|v| (v, 100)),
-			state_pruning: config.state_pruning.clone(),
-			source: config.database.clone(),
-			keep_blocks: config.keep_blocks.clone(),
-			transaction_storage: config.transaction_storage.clone(),
-		};
-		sc_client_db::light::LightStorage::new(db_settings)?
-	};
-	let light_blockchain = sc_light::new_light_blockchain(db_storage);
-	let fetch_checker = Arc::new(
-		sc_light::new_fetch_checker::<_, TBl, _>(
-			light_blockchain.clone(),
-			executor.clone(),
-			Box::new(task_manager.spawn_handle()),
-		),
-	);
-	let on_demand = Arc::new(sc_network::config::OnDemand::new(fetch_checker));
-	let backend = sc_light::new_light_backend(light_blockchain);
-	let client = Arc::new(light::new_light(
-		backend.clone(),
-		config.chain_spec.as_storage_builder(),
-		executor,
-		Box::new(task_manager.spawn_handle()),
-		config.prometheus_config.as_ref().map(|config| config.registry.clone()),
-		telemetry,
-	)?);
-
-	Ok((client, backend, keystore_container, task_manager, on_demand))
-}
-
 /// Create an instance of default DB-backend backend.
 pub fn new_db_backend<Block>(
 	settings: DatabaseSettings,
@@ -456,13 +356,15 @@ pub fn new_client<E, Block>(
 	crate::client::Client<
 		Backend<Block>,
 		crate::client::LocalCallExecutor<Backend<Block>, E>,
-		Block,
+		Block
 	>,
 	sp_blockchain::Error,
 >
 	where
 		Block: BlockT,
 		E: CodeExecutor + RuntimeInfo,
+		// C: CallApiAt<Block> + 'static + Send + Sync,
+		// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	let executor = crate::client::LocalCallExecutor::new(backend.clone(), executor, spawn_handle, config.clone())?;
 	Ok(crate::client::Client::new(

@@ -56,20 +56,3 @@ impl InspectNodeKeyCmd {
 	}
 }
 
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use super::super::GenerateNodeKeyCmd;
-
-	#[test]
-	fn inspect_node_key() {
-		let path = tempfile::tempdir().unwrap().into_path().join("node-id").into_os_string();
-		let path = path.to_str().unwrap();
-		let cmd = GenerateNodeKeyCmd::from_iter(&["generate-node-key", "--file", path.clone()]);
-
-		assert!(cmd.run().is_ok());
-
-		let cmd = InspectNodeKeyCmd::from_iter(&["inspect-node-key", "--file", path]);
-		assert!(cmd.run().is_ok());
-	}
-}

@@ -21,8 +21,7 @@
 mod state_full;
 mod state_light;
 
-#[cfg(test)]
-mod tests;
+
 
 use std::sync::Arc;
 use jsonrpc_pubsub::{typed::Subscriber, SubscriptionId, manager::SubscriptionManager};

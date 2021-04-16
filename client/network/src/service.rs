@@ -108,8 +108,7 @@ pub use behaviour::{ResponseFailure, InboundFailure, RequestFailure, OutboundFai
 
 mod metrics;
 mod out_events;
-#[cfg(test)]
-mod tests;
+
 
 /// Substrate network service. Handles network IO and manages connectivity.
 pub struct NetworkService<B: BlockT + 'static, H: ExHashT> {

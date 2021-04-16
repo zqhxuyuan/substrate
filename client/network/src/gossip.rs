@@ -61,8 +61,7 @@ use std::{
 	sync::Arc,
 };
 
-#[cfg(test)]
-mod tests;
+
 
 /// Notifications sender for a specific combination of network service, peer, and protocol.
 pub struct QueuedSender<M> {

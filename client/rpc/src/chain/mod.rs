@@ -21,8 +21,7 @@
 mod chain_full;
 mod chain_light;
 
-#[cfg(test)]
-mod tests;
+
 
 use std::sync::Arc;
 use futures::{future, StreamExt, TryStreamExt};

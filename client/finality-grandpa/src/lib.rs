@@ -143,8 +143,7 @@ use sp_finality_grandpa::{AuthorityList, AuthoritySignature, SetId};
 pub use sp_finality_grandpa::{AuthorityId, AuthorityPair, GrandpaApi, ScheduledChange};
 use std::marker::PhantomData;
 
-#[cfg(test)]
-mod tests;
+
 
 /// A GRANDPA message for a substrate chain.
 pub type Message<Block> = finality_grandpa::Message<<Block as BlockT>::Hash, NumberFor<Block>>;

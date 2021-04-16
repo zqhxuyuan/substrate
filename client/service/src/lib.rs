@@ -51,11 +51,11 @@ use sp_utils::{status_sinks, mpsc::{tracing_unbounded, TracingUnboundedReceiver}
 
 pub use self::error::Error;
 pub use self::builder::{
-	new_full_client, new_db_backend, new_client, new_full_parts, new_light_parts,
+	new_full_client, new_db_backend, new_client, new_full_parts,
 	spawn_tasks, build_network,
-	BuildNetworkParams, KeystoreContainer, NetworkStarter, SpawnTasksParams, TFullClient, TLightClient,
-	TFullBackend, TLightBackend, TLightBackendWithHash, TLightClientWithBackend,
-	TFullCallExecutor, TLightCallExecutor, RpcExtensionBuilder, NoopRpcExtensionBuilder,
+	BuildNetworkParams, KeystoreContainer, NetworkStarter, SpawnTasksParams, TFullClient,
+	TFullBackend,
+	TFullCallExecutor, RpcExtensionBuilder, NoopRpcExtensionBuilder,
 };
 pub use config::{
 	BasePath, Configuration, DatabaseConfig, PruningMode, Role, RpcMethods, TaskExecutor, TaskType,
@@ -581,51 +581,4 @@ where
 	}
 }
 
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use futures::executor::block_on;
-	use sp_consensus::SelectChain;
-	use sp_runtime::traits::BlindCheckable;
-	use substrate_test_runtime_client::{prelude::*, runtime::{Extrinsic, Transfer}};
-	use sc_transaction_pool::BasicPool;
 
-	#[test]
-	fn should_not_propagate_transactions_that_are_marked_as_such() {
-		// given
-		let (client, longest_chain) = TestClientBuilder::new().build_with_longest_chain();
-		let client = Arc::new(client);
-		let spawner = sp_core::testing::TaskExecutor::new();
-		let pool = BasicPool::new_full(
-			Default::default(),
-			true.into(),
-			None,
-			spawner,
-			client.clone(),
-		);
-		let source = sp_runtime::transaction_validity::TransactionSource::External;
-		let best = longest_chain.best_chain().unwrap();
-		let transaction = Transfer {
-			amount: 5,
-			nonce: 0,
-			from: AccountKeyring::Alice.into(),
-			to: Default::default(),
-		}.into_signed_tx();
-		block_on(pool.submit_one(
-			&BlockId::hash(best.hash()), source, transaction.clone()),
-		).unwrap();
-		block_on(pool.submit_one(
-			&BlockId::hash(best.hash()), source, Extrinsic::IncludeData(vec![1])),
-		).unwrap();
-		assert_eq!(pool.status().ready, 2);
-
-		// when
-		let transactions = transactions_to_propagate(&*pool);
-
-		// then
-		assert_eq!(transactions.len(), 1);
-		assert!(transactions[0].1.clone().check().is_ok());
-		// this should not panic
-		let _ = transactions[0].1.transfer();
-	}
-}

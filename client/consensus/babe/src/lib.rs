@@ -130,8 +130,7 @@ mod migration;
 
 pub mod aux_schema;
 pub mod authorship;
-#[cfg(test)]
-mod tests;
+
 
 /// BABE epoch information
 #[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]

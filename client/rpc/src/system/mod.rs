@@ -18,8 +18,7 @@
 
 //! Substrate system API.
 
-#[cfg(test)]
-mod tests;
+
 
 use futures::{future::BoxFuture, FutureExt, TryFutureExt};
 use futures::{channel::oneshot, compat::Compat};

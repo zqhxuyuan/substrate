@@ -601,39 +601,4 @@ macro_rules! native_executor_instance {
 	}
 }
 
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use sp_runtime_interface::runtime_interface;
 
-	#[runtime_interface]
-	trait MyInterface {
-		fn say_hello_world(data: &str) {
-			println!("Hello world from: {}", data);
-		}
-	}
-
-	native_executor_instance!(
-		pub MyExecutor,
-		substrate_test_runtime::api::dispatch,
-		substrate_test_runtime::native_version,
-		(my_interface::HostFunctions, my_interface::HostFunctions),
-	);
-
-	#[test]
-	fn native_executor_registers_custom_interface() {
-		let executor = NativeExecutor::<MyExecutor>::new(
-			WasmExecutionMethod::Interpreted,
-			None,
-			8,
-		);
-		my_interface::HostFunctions::host_functions().iter().for_each(|function| {
-			assert_eq!(
-				executor.wasm.host_functions.iter().filter(|f| f == &function).count(),
-				2,
-			);
-		});
-
-		my_interface::say_hello_world("hey");
-	}
-}

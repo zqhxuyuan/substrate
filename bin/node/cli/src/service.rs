@@ -31,7 +31,7 @@ use sp_inherents::InherentDataProviders;
 use sc_network::{Event, NetworkService};
 use sp_runtime::traits::Block as BlockT;
 use futures::prelude::*;
-use sc_client_api::{ExecutorProvider, RemoteBackend};
+use sc_client_api::{ExecutorProvider, RemoteBackend, Backend};
 use node_executor::Executor;
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_consensus_babe::SlotProportion;
@@ -39,13 +39,15 @@ use log::info;
 
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use sc_consensus_aura::{ImportQueueParams, StartAuraParams};
+use sc_service::client::Client;
+use sp_api::CallApiAt;
 
+// type FullClient = sc_service::TFullClient<Block, Executor,CallApiAt<Block, StateBackend = <sc_service::TFullBackend<Block> as Backend<Block>>::State>>;
 type FullClient = sc_service::TFullClient<Block, Executor>;
 type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullGrandpaBlockImport =
 	grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
-type LightClient = sc_service::TLightClient<Block, Executor>;
 
 pub fn new_partial(
 	config: &Configuration,

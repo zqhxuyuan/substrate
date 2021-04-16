@@ -1,3 +1,23 @@
+// construct_runtime!(
+// 	pub enum MockRuntimeAPi where
+// 		Block = Block,
+// 		NodeBlock = node_primitives::Block,
+// 		UncheckedExtrinsic = UncheckedExtrinsic
+// 	{
+// 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+// 		Utility: pallet_utility::{Pallet, Call, Event},
+// 	}
+// );
+
+// pub struct MockRuntimeAPi<C, Block> where
+//     Block: BlockT,
+//     C: CallApiAt<Block> + 'static,
+//     C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
+// {
+//     pub call: &'static C,
+//     pub(crate) _ph: PhantomData<Block>
+// }
+
 // use sp_core::OpaqueMetadata;
 // sp_api::mock_impl_runtime_apis! {
 // 	impl AuthorityDiscoveryApi<Block> for MockRuntimeAPi {

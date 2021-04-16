@@ -18,8 +18,7 @@
 
 //! Substrate offchain API.
 
-#[cfg(test)]
-mod tests;
+
 
 /// Re-export the API for backward compatibility.
 pub use sc_rpc_api::offchain::*;

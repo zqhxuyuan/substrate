@@ -36,8 +36,7 @@ use tracing_futures::Instrument;
 use crate::{config::{TaskExecutor, TaskType, JoinFuture}, Error};
 
 mod prometheus_future;
-#[cfg(test)]
-mod tests;
+
 
 /// An handle for spawning tasks in the service.
 #[derive(Clone)]

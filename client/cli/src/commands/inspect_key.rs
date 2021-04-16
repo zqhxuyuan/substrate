@@ -92,30 +92,3 @@ impl InspectKeyCmd {
 	}
 }
 
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use structopt::StructOpt;
-
-	#[test]
-	fn inspect() {
-		let words =
-			"remember fiber forum demise paper uniform squirrel feel access exclude casual effort";
-		let seed = "0xad1fb77243b536b90cfe5f0d351ab1b1ac40e3890b41dc64f766ee56340cfca5";
-
-		let inspect =
-			InspectKeyCmd::from_iter(&["inspect-key", words, "--password", "12345"]);
-		assert!(inspect.run().is_ok());
-
-		let inspect = InspectKeyCmd::from_iter(&["inspect-key", seed]);
-		assert!(inspect.run().is_ok());
-	}
-
-	#[test]
-	fn inspect_public_key() {
-		let public = "0x12e76e0ae8ce41b6516cce52b3f23a08dcb4cfeed53c6ee8f5eb9f7367341069";
-
-		let inspect = InspectKeyCmd::from_iter(&["inspect-key", "--public", public]);
-		assert!(inspect.run().is_ok());
-	}
-}

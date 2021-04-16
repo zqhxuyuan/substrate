@@ -76,15 +76,3 @@ impl GenerateCmd {
 		Ok(())
 	}
 }
-
-#[cfg(test)]
-mod tests {
-	use super::GenerateCmd;
-	use structopt::StructOpt;
-
-	#[test]
-	fn generate() {
-		let generate = GenerateCmd::from_iter(&["generate", "--password", "12345"]);
-		assert!(generate.run().is_ok())
-	}
-}

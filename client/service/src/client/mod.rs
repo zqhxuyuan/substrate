@@ -46,7 +46,7 @@
 //! is responsible for putting the right marker.
 
 pub mod genesis;
-pub mod light;
+// pub mod light;
 mod call_executor;
 mod client;
 mod block_rules;

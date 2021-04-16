@@ -32,6 +32,7 @@ impl InspectCmd {
 		B: Block,
 		B::Hash: FromStr,
 		// RA: Send + Sync + 'static,
+		// C: sp_api::CallApiAt<B> + Send + Sync + 'static,
 		EX: NativeExecutionDispatch + 'static,
 	{
 		let client = new_full_client::<B, EX>(&config, None)?;

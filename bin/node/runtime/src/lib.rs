@@ -531,18 +531,3 @@ impl_runtime_apis! {
 	}
 
 }
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-	use frame_system::offchain::CreateSignedTransaction;
-
-	#[test]
-	fn validate_transaction_submitter_bounds() {
-		fn is_submit_signed_transaction<T>() where
-			T: CreateSignedTransaction<Call>,
-		{}
-
-		is_submit_signed_transaction::<Runtime>();
-	}
-}

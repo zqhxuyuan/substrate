@@ -62,7 +62,7 @@ use sp_blockchain::{
 	HeaderMetadata, CachedHeaderMetadata,
 };
 use sp_trie::StorageProof;
-use sp_api::{CallApiAt, ConstructRuntimeApi, Core as CoreApi, ApiExt, ApiRef, ProvideRuntimeApi, CallApiAtParams, TransactionOutcome, RuntimeApiInfo, StorageChanges, ApiError};
+use sp_api::{CallApiAt, ConstructRuntimeApi, Core as CoreApi, ApiExt, ApiRef, ProvideRuntimeApi, CallApiAtParams, TransactionOutcome, RuntimeApiInfo, StorageChanges, ApiError, OverlayedChanges, StorageTransactionCache};
 use sc_block_builder::{BlockBuilderApi, BlockBuilderProvider, RecordProof};
 use sc_client_api::{
 	backend::{
@@ -103,6 +103,7 @@ use sp_authority_discovery::{AuthorityDiscoveryApi, AuthorityId};
 use sp_runtime::traits::Block;
 pub use sp_state_machine::ChangesTrieState;
 use crate::client::mock::MockRuntimeAPi;
+use std::cell::RefCell;
 
 type NotificationSinks<T> = Mutex<Vec<TracingUnboundedSender<T>>>;
 
@@ -167,6 +168,8 @@ pub fn new_in_mem<E, Block, S>(
 	E: CodeExecutor + RuntimeInfo,
 	S: BuildStorage,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	new_with_backend(
 		Arc::new(in_mem::Backend::new()),
@@ -209,6 +212,8 @@ pub fn new_with_backend<B, E, Block, S>(
 		S: BuildStorage,
 		Block: BlockT,
 		B: backend::LocalBackend<Block> + 'static,
+		// C: CallApiAt<Block> + 'static + Send + Sync,
+		// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	let call_executor = LocalCallExecutor::new(backend.clone(), executor, spawn_handle, config.clone())?;
 	let extensions = ExecutionExtensions::new(
@@ -233,6 +238,8 @@ impl<B, E, Block> BlockOf for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	type Type = Block;
 }
@@ -242,6 +249,8 @@ impl<B, E, Block> LockImportRun<Block, B> for Client<B, E, Block>
 		B: backend::Backend<Block>,
 		E: CallExecutor<Block>,
 		Block: BlockT,
+		// C: CallApiAt<Block> + 'static + Send + Sync,
+		// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn lock_import_and_run<R, Err, F>(&self, f: F) -> Result<R, Err>
 		where
@@ -280,6 +289,8 @@ impl<B, E, Block> LockImportRun<Block, B> for &Client<B, E, Block>
 		Block: BlockT,
 		B: backend::Backend<Block>,
 		E: CallExecutor<Block>,
+		// C: CallApiAt<Block> + 'static + Send + Sync,
+		// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn lock_import_and_run<R, Err, F>(&self, f: F) -> Result<R, Err>
 		where
@@ -295,6 +306,8 @@ impl<B, E, Block> Client<B, E, Block> where
 	E: CallExecutor<Block>,
 	Block: BlockT,
 	Block::Header: Clone,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	/// Creates new Substrate Client with given blockchain and code executor.
 	pub fn new(
@@ -1196,6 +1209,8 @@ impl<B, E, Block> UsageProvider<Block> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	/// Get usage info about current client.
 	fn usage_info(&self) -> ClientInfo<Block> {
@@ -1210,6 +1225,8 @@ impl<B, E, Block> ProofProvider<Block> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn read_proof(
 		&self,
@@ -1294,6 +1311,8 @@ impl<B, E, Block> BlockBuilderProvider<B, Block, Self> for Client<B, E, Block>
 		Self: ChainHeaderBackend<Block> + ProvideRuntimeApi<Block>,
 		<Self as ProvideRuntimeApi<Block>>::Api: ApiExt<Block, StateBackend = backend::StateBackendFor<B, Block>>
 			+ BlockBuilderApi<Block>,
+		// C: CallApiAt<Block> + 'static + Send + Sync,
+		// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn new_block_at<R: Into<RecordProof>>(
 		&self,
@@ -1331,6 +1350,8 @@ impl<B, E, Block> ExecutorProvider<Block> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	type Executor = E;
 
@@ -1347,6 +1368,8 @@ impl<B, E, Block> StorageProvider<Block, B> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn storage_keys(&self, id: &BlockId<Block>, key_prefix: &StorageKey) -> sp_blockchain::Result<Vec<StorageKey>> {
 		let keys = self.state_at(id)?.keys(&key_prefix.0).into_iter().map(StorageKey).collect();
@@ -1521,6 +1544,8 @@ impl<B, E, Block> HeaderMetadata<Block> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	type Error = sp_blockchain::Error;
 
@@ -1541,6 +1566,8 @@ impl<B, E, Block> ProvideUncles<Block> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn uncles(&self, target_hash: Block::Hash, max_generation: NumberFor<Block>) -> sp_blockchain::Result<Vec<Block::Header>> {
 		Ok(Client::uncles(self, target_hash, max_generation)?
@@ -1555,6 +1582,8 @@ impl<B, E, Block> ChainHeaderBackend<Block> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block> + Send + Sync,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn header(&self, id: BlockId<Block>) -> sp_blockchain::Result<Option<Block::Header>> {
 		self.backend.blockchain().header(id)
@@ -1581,6 +1610,8 @@ impl<B, E, Block> sp_runtime::traits::BlockIdTo<Block> for Client<B, E, Block> w
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block> + Send + Sync,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	type Error = Error;
 
@@ -1597,6 +1628,8 @@ impl<B, E, Block> ChainHeaderBackend<Block> for &Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block> + Send + Sync,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn header(&self, id: BlockId<Block>) -> sp_blockchain::Result<Option<Block::Header>> {
 		(**self).backend.blockchain().header(id)
@@ -1622,24 +1655,49 @@ impl<B, E, Block> ChainHeaderBackend<Block> for &Client<B, E, Block> where
 impl<B, E, Block> ProvideCache<Block> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn cache(&self) -> Option<Arc<dyn Cache<Block>>> {
 		self.backend.blockchain().cache()
 	}
 }
 
-impl<B, E, Block,C> ProvideRuntimeApi<Block> for Client<B, E, Block> where
-	B: backend::Backend<Block>,
-	E: CallExecutor<Block, Backend = B> + Send + Sync,
+// impl<B, E, Block,C> ProvideRuntimeApi<Block> for Client<B, E, Block,C> where
+// 	B: backend::Backend<Block>,
+// 	E: CallExecutor<Block, Backend = B> + Send + Sync,
+// 	Block: BlockT,
+// 	C: CallApiAt<Block> + 'static + Send + Sync,
+// 	C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
+// {
+// 	type Api = MockRuntimeAPi<C, Block>;
+// 	fn runtime_api<'a>(&'a self) -> ApiRef<'a, Self::Api> {
+// 		MockRuntimeAPi {
+// 			call: self,
+// 			_ph: Default::default()
+// 		}.into()
+// 	}
+// }
+
+impl<B, E, Block> ProvideRuntimeApi<Block> for Client<B, E, Block> where
+	B: backend::Backend<Block> + 'static,
+	E: CallExecutor<Block, Backend = B> + Send + Sync + 'static,
 	Block: BlockT,
-	C: CallApiAt<Block> + 'static,
-	C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
-	type Api = MockRuntimeAPi<C, Block>;
-	fn runtime_api<'a>(&'a self) -> ApiRef<'a, Self::Api> {
+	type Api = MockRuntimeAPi<Self, Block>;
+	fn runtime_api<'a>(&'a self) -> ApiRef<'a, Self::Api> where
+		Self: CallApiAt<Block> + 'static + Send + Sync,
+		// Self::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
+	{
+		// let _changes: OverlayedChanges = Default::default();
+		// let _storage: StorageTransactionCache<Block, Self::StateBackend> = Default::default();
+
 		MockRuntimeAPi {
-			call: &self,
-			// call: unsafe { std::mem::transmute(self) },
+			call:  unsafe { std::mem::transmute(self) },
+			// changes: &RefCell::new(_changes),
+			// storage: &RefCell::new(_storage),
+			changes: Default::default(),
+			storage: Default::default(),
 			_ph: Default::default()
 		}.into()
 	}
@@ -1647,7 +1705,7 @@ impl<B, E, Block,C> ProvideRuntimeApi<Block> for Client<B, E, Block> where
 
 // the type parameter `RA` is not constrained by the impl trait, self type, or predicates
 // RA ^^ unconstrained type parameter
-// impl<B, E, Block, RA> ProvideRuntimeApi<Block> for Client<B, E, Block> where
+// impl<B, E, Block, RA> ProvideRuntimeApi<Block> for Client<B, E, Block,C> where
 // 	B: backend::Backend<Block>,
 // 	E: CallExecutor<Block, Backend = B> + Send + Sync,
 // 	Block: BlockT,
@@ -1664,6 +1722,8 @@ impl<B, E, Block> CallApiAt<Block> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block, Backend = B> + Send + Sync,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync + CoreApi<Block>,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	type StateBackend = B::State;
 
@@ -1672,6 +1732,7 @@ impl<B, E, Block> CallApiAt<Block> for Client<B, E, Block> where
 		R: Encode + Decode + PartialEq,
 		NC: FnOnce() -> result::Result<R, sp_api::ApiError> + UnwindSafe,
 		C: CoreApi<Block>,
+		// CC: CoreApi<Block>,
 	>(
 		&self,
 		params: CallApiAtParams<'a, Block, C, NC, B::State>,
@@ -1721,6 +1782,8 @@ impl<B, E, Block> sp_consensus::BlockImport<Block> for &Client<B, E, Block> wher
 	<Client<B, E, Block> as ProvideRuntimeApi<Block>>::Api: CoreApi<Block> +
 		ApiExt<Block, StateBackend = B::State>,
 	backend::TransactionFor<B, Block>: Send + 'static,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	type Error = ConsensusError;
 	type Transaction = backend::TransactionFor<B, Block>;
@@ -1823,6 +1886,8 @@ impl<B, E, Block> sp_consensus::BlockImport<Block> for Client<B, E, Block> where
 	<Self as ProvideRuntimeApi<Block>>::Api: CoreApi<Block> +
 		ApiExt<Block, StateBackend = B::State>,
 	backend::TransactionFor<B, Block>: Send + 'static,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	type Error = ConsensusError;
 	type Transaction = backend::TransactionFor<B, Block>;
@@ -1847,6 +1912,8 @@ impl<B, E, Block> Finalizer<Block, B> for Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn apply_finality(
 		&self,
@@ -1883,6 +1950,8 @@ impl<B, E, Block> Finalizer<Block, B> for &Client<B, E, Block> where
 	B: backend::Backend<Block>,
 	E: CallExecutor<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn apply_finality(
 		&self,
@@ -1908,6 +1977,8 @@ impl<B, E, Block> BlockchainEvents<Block> for Client<B, E, Block>
 where
 	E: CallExecutor<Block>,
 	Block: BlockT,
+	// C: CallApiAt<Block> + 'static + Send + Sync,
+	// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	/// Get block import event stream.
 	fn import_notification_stream(&self) -> ImportNotifications<Block> {
@@ -1937,6 +2008,8 @@ impl<B, E, Block> BlockBackend<Block> for Client<B, E, Block>
 		B: backend::Backend<Block>,
 		E: CallExecutor<Block>,
 		Block: BlockT,
+		// C: CallApiAt<Block> + 'static + Send + Sync,
+		// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn block_body(
 		&self,
@@ -1981,6 +2054,8 @@ impl<B, E, Block> backend::AuxStore for Client<B, E, Block>
 		Block: BlockT,
 		Self: ProvideRuntimeApi<Block>,
 		<Self as ProvideRuntimeApi<Block>>::Api: CoreApi<Block>,
+		// C: CallApiAt<Block> + 'static + Send + Sync,
+		// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	/// Insert auxiliary data into key-value store.
 	fn insert_aux<
@@ -2011,6 +2086,8 @@ impl<B, E, Block> backend::AuxStore for &Client<B, E, Block>
 		Block: BlockT,
 		Client<B, E, Block>: ProvideRuntimeApi<Block>,
 		<Client<B, E, Block> as ProvideRuntimeApi<Block>>::Api: CoreApi<Block>,
+		// C: CallApiAt<Block> + 'static + Send + Sync,
+		// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
 	fn insert_aux<
 		'a,
@@ -2032,6 +2109,8 @@ impl<BE, E, B> sp_consensus::block_validation::Chain<B> for Client<BE, E, B>
 		BE: backend::Backend<B>,
 		E: CallExecutor<B>,
 		B: BlockT,
+		// C: CallApiAt<B> + 'static + Send + Sync,
+		// C::StateBackend: sp_api::StateBackend<sp_api::HashFor<B>,>
 {
 	fn block_status(
 		&self,
