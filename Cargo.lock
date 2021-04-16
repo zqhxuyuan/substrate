@@ -4128,7 +4128,6 @@ dependencies = [
  "sc-offchain",
  "sc-rpc",
  "sc-service",
- "sc-service-test",
  "sc-telemetry",
  "sc-tracing",
  "sc-transaction-pool",
@@ -7882,42 +7881,6 @@ dependencies = [
  "tracing",
  "tracing-futures",
  "wasm-timer",
-]
-
-[[package]]
-name = "sc-service-test"
-version = "2.0.0"
-dependencies = [
- "fdlimit",
- "futures 0.1.31",
- "futures 0.3.13",
- "hex-literal",
- "log",
- "parity-scale-codec 2.1.0",
- "parking_lot 0.11.1",
- "sc-block-builder",
- "sc-client-api",
- "sc-client-db",
- "sc-executor",
- "sc-light",
- "sc-network",
- "sc-service",
- "sp-api",
- "sp-blockchain",
- "sp-consensus",
- "sp-core",
- "sp-externalities",
- "sp-panic-handler",
- "sp-runtime",
- "sp-state-machine",
- "sp-storage",
- "sp-tracing",
- "sp-transaction-pool",
- "sp-trie",
- "substrate-test-runtime",
- "substrate-test-runtime-client",
- "tempfile",
- "tokio 0.1.22",
 ]
 
 [[package]]
