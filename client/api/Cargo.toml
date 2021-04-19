@@ -18,7 +18,7 @@ codec = { package = "parity-scale-codec", version = "2.0.0", default-features = 
 sp-consensus = { version = "0.9.0", path = "../../primitives/consensus/common" }
 derive_more = "0.99.2"
 sc-executor = { version = "0.9.0", path = "../executor" }
-sp-externalities = { version = "0.9.0", path = "../../primitives/externalities" }
+sp-externalities = { version = "0.9.0", git = "https://github.com/paritytech/substrate", branch = "master" }
 fnv = "1.0.6"
 futures = "0.3.1"
 hash-db = { version = "0.15.2", default-features = false }
