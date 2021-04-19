@@ -13,28 +13,28 @@ readme = "README.md"
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-sp-application-crypto = { version = "3.0.0", path = "../../../primitives/application-crypto" }
-sp-consensus-aura = { version = "0.9.0", path = "../../../primitives/consensus/aura" }
-sp-block-builder = { version = "3.0.0", path = "../../../primitives/block-builder" }
+sp-application-crypto = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-consensus-aura = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-block-builder = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 sc-block-builder = { version = "0.9.0", path = "../../block-builder" }
 sc-client-api = { version = "3.0.0", path = "../../api" }
 codec = { package = "parity-scale-codec", version = "2.0.0" }
-sp-consensus = { version = "0.9.0", path = "../../../primitives/consensus/common" }
-sp-consensus-slots = { version = "0.9.0", path = "../../../primitives/consensus/slots" }
+sp-consensus = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-consensus-slots = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 derive_more = "0.99.2"
 futures = "0.3.9"
 futures-timer = "3.0.1"
-sp-inherents = { version = "3.0.0", path = "../../../primitives/inherents" }
+sp-inherents = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 log = "0.4.8"
-sp-core = { version = "3.0.0", path = "../../../primitives/core" }
-sp-blockchain = { version = "3.0.0", path = "../../../primitives/blockchain" }
-sp-io = { version = "3.0.0", path = "../../../primitives/io" }
-sp-version = { version = "3.0.0", path = "../../../primitives/version" }
+sp-core = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-blockchain = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-io = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-version = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 sc-consensus-slots = { version = "0.9.0", path = "../slots" }
-sp-api = { version = "3.0.0", path = "../../../primitives/api" }
-sp-runtime = { version = "3.0.0", path = "../../../primitives/runtime" }
-sp-timestamp = { version = "3.0.0", path = "../../../primitives/timestamp" }
-sp-keystore = { version = "0.9.0", path = "../../../primitives/keystore" }
+sp-api = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-runtime = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-timestamp = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-keystore = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 sc-telemetry = { version = "3.0.0", path = "../../telemetry" }
 prometheus-endpoint = { package = "substrate-prometheus-endpoint", path = "../../../utils/prometheus", version = "0.9.0"}
 async-trait = "0.1.42"
@@ -43,8 +43,8 @@ async-trait = "0.1.42"
 getrandom = { version = "0.2", features = ["js"], optional = true }
 
 [dev-dependencies]
-sp-keyring = { version = "3.0.0", path = "../../../primitives/keyring" }
-sp-tracing = { version = "3.0.0", path = "../../../primitives/tracing" }
+sp-keyring = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-tracing = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 sc-executor = { version = "0.9.0", path = "../../executor" }
 sc-keystore = { version = "3.0.0", path = "../../keystore" }
 sc-network = { version = "0.9.0", path = "../../network" }

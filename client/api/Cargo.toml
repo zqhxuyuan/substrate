@@ -15,35 +15,35 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false, features = ["derive"] }
-sp-consensus = { version = "0.9.0", path = "../../primitives/consensus/common" }
+sp-consensus = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 derive_more = "0.99.2"
 sc-executor = { version = "0.9.0", path = "../executor" }
-sp-externalities = { version = "0.9.0", git = "https://github.com/paritytech/substrate", branch = "master" }
+sp-externalities = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 fnv = "1.0.6"
 futures = "0.3.1"
 hash-db = { version = "0.15.2", default-features = false }
-sp-blockchain = { version = "3.0.0", path = "../../primitives/blockchain" }
-sp-inherents = { version = "3.0.0", default-features = false, path = "../../primitives/inherents" }
+sp-blockchain = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-inherents = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate", rev="22193e0" }
 kvdb = "0.9.0"
 log = "0.4.8"
 parking_lot = "0.11.1"
 lazy_static =  "1.4.0"
-sp-database = { version = "3.0.0", path = "../../primitives/database" }
-sp-core = { version = "3.0.0", default-features = false, path = "../../primitives/core" }
-sp-keystore = { version = "0.9.0", default-features = false, path = "../../primitives/keystore" }
-sp-std = { version = "3.0.0", default-features = false, path = "../../primitives/std" }
-sp-version = { version = "3.0.0", default-features = false, path = "../../primitives/version" }
-sp-api = { version = "3.0.0", path = "../../primitives/api" }
-sp-utils = { version = "3.0.0", path = "../../primitives/utils" }
-sp-runtime = { version = "3.0.0", default-features = false, path = "../../primitives/runtime" }
-sp-state-machine = { version = "0.9.0", path = "../../primitives/state-machine" }
-sp-trie = { version = "3.0.0", path = "../../primitives/trie" }
-sp-storage = { version = "3.0.0", path = "../../primitives/storage" }
-sp-transaction-pool = { version = "3.0.0", path = "../../primitives/transaction-pool" }
+sp-database = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-core = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-keystore = { version = "0.9.0", default-features = false, git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-std = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-version = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-api = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-runtime = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-state-machine = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-trie = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-storage = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-transaction-pool = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 prometheus-endpoint = { package = "substrate-prometheus-endpoint", version = "0.9.0", path = "../../utils/prometheus" }
 
 [dev-dependencies]
 kvdb-memorydb = "0.9.0"
-sp-test-primitives = { version = "2.0.0", path = "../../primitives/test-primitives" }
+sp-test-primitives = { version = "2.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 substrate-test-runtime = { version = "2.0.0", path = "../../test-utils/runtime"  }
 thiserror = "1.0.21"
