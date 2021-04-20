@@ -31,15 +31,15 @@ rand = "0.7.2"
 sc-client-api = { version = "3.0.0", path = "../api" }
 sc-network = { version = "0.9.0", path = "../network" }
 serde_json = "1.0.41"
-sp-authority-discovery = { version = "3.0.0", path = "../../primitives/authority-discovery" }
-sp-blockchain = { version = "3.0.0", path = "../../primitives/blockchain" }
-sp-core = { version = "3.0.0", path = "../../primitives/core" }
-sp-keystore = { version = "0.9.0", path = "../../primitives/keystore" }
-sp-runtime = { version = "3.0.0", path = "../../primitives/runtime" }
-sp-api = { version = "3.0.0", path = "../../primitives/api" }
+sp-authority-discovery = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-blockchain = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-core = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-keystore = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-runtime = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-api = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 
 [dev-dependencies]
 quickcheck = "1.0.3"
-sp-tracing = { version = "3.0.0", path = "../../primitives/tracing" }
+sp-tracing = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 sc-peerset = { version = "3.0.0", path = "../peerset" }
 #substrate-test-runtime-client = { version = "2.0.0", path = "../../test-utils/runtime/client"}

@@ -15,32 +15,32 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", features = ["derive"] }
-sp-consensus-babe = { version = "0.9.0", path = "../../../primitives/consensus/babe" }
-sp-core = { version = "3.0.0", path = "../../../primitives/core" }
-sp-application-crypto = { version = "3.0.0", path = "../../../primitives/application-crypto" }
-sp-keystore = { version = "0.9.0", path = "../../../primitives/keystore" }
+sp-consensus-babe = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-core = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-application-crypto = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-keystore = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 num-bigint = "0.2.3"
 num-rational = "0.2.2"
 num-traits = "0.2.8"
 serde = { version = "1.0.104", features = ["derive"] }
-sp-version = { version = "3.0.0", path = "../../../primitives/version" }
-sp-io = { version = "3.0.0", path = "../../../primitives/io" }
-sp-inherents = { version = "3.0.0", path = "../../../primitives/inherents" }
-sp-timestamp = { version = "3.0.0", path = "../../../primitives/timestamp" }
+sp-version = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-io = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-inherents = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-timestamp = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 sc-telemetry = { version = "3.0.0", path = "../../telemetry" }
 sc-keystore = { version = "3.0.0", path = "../../keystore" }
 sc-client-api = { version = "3.0.0", path = "../../api" }
 sc-consensus-epochs = { version = "0.9.0", path = "../epochs" }
-sp-api = { version = "3.0.0", path = "../../../primitives/api" }
-sp-block-builder = { version = "3.0.0", path = "../../../primitives/block-builder" }
-sp-blockchain = { version = "3.0.0", path = "../../../primitives/blockchain" }
-sp-consensus = { version = "0.9.0", path = "../../../primitives/consensus/common" }
-sp-consensus-slots = { version = "0.9.0", path = "../../../primitives/consensus/slots" }
-sp-consensus-vrf = { version = "0.9.0", path = "../../../primitives/consensus/vrf" }
+sp-api = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-block-builder = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-blockchain = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-consensus = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-consensus-slots = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-consensus-vrf = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 sc-consensus-uncles = { version = "0.9.0", path = "../uncles" }
 sc-consensus-slots = { version = "0.9.0", path = "../slots" }
-sp-runtime = { version = "3.0.0", path = "../../../primitives/runtime" }
-sp-utils = { version = "3.0.0", path = "../../../primitives/utils" }
+sp-runtime = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-utils = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 fork-tree = { version = "3.0.0", path = "../../../utils/fork-tree" }
 prometheus-endpoint = { package = "substrate-prometheus-endpoint", path = "../../../utils/prometheus", version = "0.9.0"}
 futures = "0.3.9"
@@ -56,8 +56,8 @@ retain_mut = "0.1.2"
 async-trait = "0.1.42"
 
 [dev-dependencies]
-sp-keyring = { version = "3.0.0", path = "../../../primitives/keyring" }
-sp-tracing = { version = "3.0.0", path = "../../../primitives/tracing" }
+sp-keyring = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-tracing = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 sc-executor = { version = "0.9.0", path = "../../executor" }
 sc-network = { version = "0.9.0", path = "../../network" }
 sc-network-test = { version = "0.8.0", path = "../../network/test" }

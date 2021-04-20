@@ -358,7 +358,7 @@ impl<B: BlockT + 'static, H: ExHashT> TransactionsHandler<B, H> {
 		who: PeerId,
 		transactions: message::Transactions<B::Extrinsic>,
 	) {
-		error!("on_transactions not supported in sync/archive mode!");
+		// error!("on_transactions not supported in sync/archive mode!");
 		// sending transaction to light node is considered a bad behavior
 		// if matches!(self.local_role, config::Role::Light) {
 		// 	debug!(target: "sync", "Peer {} is trying to send transactions to the light node", who);

@@ -22,7 +22,7 @@ js-sys = "0.3.34"
 wasm-bindgen = "0.2.57"
 wasm-bindgen-futures = "0.4.18"
 kvdb-web = "0.9.0"
-sp-database = { version = "3.0.0", path = "../../primitives/database" }
+sp-database = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 sc-informant = { version = "0.9.0", path = "../../client/informant" }
 sc-service = { version = "0.9.0", path = "../../client/service", default-features = false }
 sc-network = { path = "../../client/network", version = "0.9.0"}

@@ -1691,7 +1691,6 @@ impl<B, E, Block> ProvideRuntimeApi<Block> for Client<B, E, Block> where
 	{
 		// let _changes: OverlayedChanges = Default::default();
 		// let _storage: StorageTransactionCache<Block, Self::StateBackend> = Default::default();
-
 		MockRuntimeAPi {
 			call:  unsafe { std::mem::transmute(self) },
 			initialized_block: None.into(),

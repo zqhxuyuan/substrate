@@ -14,9 +14,9 @@ targets = ["x86_64-unknown-linux-gnu"]
 jsonrpc-core = "15.1.0"
 node-primitives = { version = "2.0.0", path = "../primitives" }
 node-runtime = { version = "2.0.0", path = "../runtime" }
-pallet-contracts-rpc = { version = "3.0.0", path = "../../../frame/contracts/rpc/" }
-pallet-mmr-rpc = { version = "3.0.0", path = "../../../frame/merkle-mountain-range/rpc/" }
-pallet-transaction-payment-rpc = { version = "3.0.0", path = "../../../frame/transaction-payment/rpc/" }
+pallet-contracts-rpc = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+pallet-mmr-rpc = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+pallet-transaction-payment-rpc = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 sc-client-api = { version = "3.0.0", path = "../../../client/api" }
 sc-consensus-babe = { version = "0.9.0", path = "../../../client/consensus/babe" }
 sc-consensus-babe-rpc = { version = "0.9.0", path = "../../../client/consensus/babe/rpc" }
@@ -28,12 +28,12 @@ sc-keystore = { version = "3.0.0", path = "../../../client/keystore" }
 sc-rpc-api = { version = "0.9.0", path = "../../../client/rpc-api" }
 sc-rpc = { version = "3.0.0", path = "../../../client/rpc" }
 sc-sync-state-rpc = { version = "0.9.0", path = "../../../client/sync-state-rpc" }
-sp-api = { version = "3.0.0", path = "../../../primitives/api" }
-sp-block-builder = { version = "3.0.0", path = "../../../primitives/block-builder" }
-sp-blockchain = { version = "3.0.0", path = "../../../primitives/blockchain" }
-sp-keystore = { version = "0.9.0", path = "../../../primitives/keystore" }
-sp-consensus = { version = "0.9.0", path = "../../../primitives/consensus/common" }
-sp-consensus-babe = { version = "0.9.0", path = "../../../primitives/consensus/babe" }
-sp-runtime = { version = "3.0.0", path = "../../../primitives/runtime" }
-sp-transaction-pool = { version = "3.0.0", path = "../../../primitives/transaction-pool" }
+sp-api = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-block-builder = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-blockchain = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-keystore = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-consensus = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-consensus-babe = { version = "0.9.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-runtime = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
+sp-transaction-pool = { version = "3.0.0", git = "https://github.com/paritytech/substrate", rev="22193e0" }
 substrate-frame-rpc-system = { version = "3.0.0", path = "../../../utils/frame/rpc/system" }
