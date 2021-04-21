@@ -71,6 +71,10 @@ pub struct ImportSummary<Block: BlockT> {
 	///
 	/// If `None`, there was no re-org while importing.
 	pub tree_route: Option<sp_blockchain::TreeRoute<Block>>,
+
+	// for archive use
+	pub justifications: Option<Justifications>,
+	pub body: Option<Vec<Block::Extrinsic>>,
 }
 
 /// Import operation wrapper
