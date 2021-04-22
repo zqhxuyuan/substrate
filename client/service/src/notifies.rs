@@ -111,7 +111,8 @@ impl<B, Block> ClientNotifies<B, Block>
         if let Some(storage_changes) = notify_import.storage_changes {
             // v1: archive logic done here
             let hash = notify_import.hash;
-            let number = notify_import.header.number();
+            let number = *notify_import.header.number();
+            let parent_hash = notify_import.header.parent_hash().as_ref();
             let header: Block::Header = notify_import.header.clone();
             let _parent_hash: &[u8] = header.parent_hash().as_ref();
             // From<<<Block as BlockT>::Header as HeaderT>::Number>` is not implemented for `u32`

@@ -175,6 +175,43 @@ impl<C, Block> MockRuntimeAPi<C,Block> where
         }
         // }
     }
+
+    // fn _call_api_at<T>(&self, method: &str, init_block: bool, at: &BlockId<Block>, tuple: &()) -> Result<T, sp_api::ApiError> {
+    //     self.changes.borrow_mut().start_transaction();
+    //     let runtime_api_impl_params_encoded = sp_api::Encode::encode(tuple);
+    //     let initialize_block = if init_block {
+    //         InitializeBlock::Skip
+    //     } else {
+    //         InitializeBlock::Do(&self.initialized_block)
+    //     };
+    //     let call_params: CallApiAtParams<'_, Block, MockRuntimeAPi<C, Block>, fn() -> Result<T, sp_api::ApiError>, <C as CallApiAt<Block>>::StateBackend>
+    //         = CallApiAtParams {
+    //         core_api: self.clone(),
+    //         at: at,
+    //         function: method,
+    //         native_call: None,
+    //         arguments: runtime_api_impl_params_encoded,
+    //         overlayed_changes: &self.changes,
+    //         storage_transaction_cache: &self.storage,
+    //         initialize_block: initialize_block,
+    //         context: ExecutionContext::OffchainCall(None),
+    //         recorder: &None
+    //     };
+    //     let res = self.call.call_api_at(call_params);
+    //     if res.is_ok() {
+    //         self.changes.borrow_mut().commit_transaction().expect("commit error!");
+    //     } else {
+    //         self.changes.borrow_mut().rollback_transaction().expect("rollback error!");
+    //     }
+    //     let res = res.and_then(|r| match r {
+    //         sp_api::NativeOrEncoded::Native(n) => Ok(n),
+    //         sp_api::NativeOrEncoded::Encoded(r) =>
+    //             < T as sp_api::Decode>::decode (& mut & r [..])
+    //                 .map_err (| err | sp_api :: ApiError :: FailedToDecodeReturnValue {
+    //                     function : method ,
+    //                     error : err , }) });
+    //     res
+    // }
 }
 
 impl<C, Block> ApiExt<Block> for MockRuntimeAPi<C,Block> where
@@ -247,6 +284,8 @@ impl<C, Block> ApiExt<Block> for MockRuntimeAPi<C,Block> where
     }
 }
 
+const ID: [u8; 8] = [223u8, 106u8, 203u8, 104u8, 153u8, 7u8, 96u8, 155u8];
+
 // impl<Block, UnsignedValidator, Context: Default> sp_api::Core<Block> for MockRuntimeAPi<Block> where
 impl<C,Block> sp_api::Core<Block> for MockRuntimeAPi<C,Block> where
         Block: BlockT,
@@ -264,7 +303,47 @@ impl<C,Block> sp_api::Core<Block> for MockRuntimeAPi<C,Block> where
     }
     fn initialize_block(&self, at: &BlockId<Block>, header: &<Block as BlockT>::Header) -> Result<(), sp_api::ApiError> {
         info!("call initialize_block");
-        unimplemented!()
+        // unimplemented!()
+        self.changes.borrow_mut().start_transaction();
+        let version = self.call.runtime_version_at(at)?;
+        let runtime_api_impl_params_encoded = sp_api::Encode::encode(&(&header));
+        let initialize_block = if true {
+            InitializeBlock::Skip
+        } else {
+            InitializeBlock::Do(&self.initialized_block)
+        };
+        let method = if version.apis.iter().any(|(s, v)| s == &ID && *v < 2u32) {
+            "Core_initialise_block"
+        } else {
+            "Core_initialize_block"
+        };
+        let call_params: CallApiAtParams<'_, Block, MockRuntimeAPi<C, Block>, fn() -> Result<(), sp_api::ApiError>, <C as CallApiAt<Block>>::StateBackend>
+            = CallApiAtParams {
+            core_api: self.clone(),
+            at: at,
+            function: method,
+            native_call: None,
+            arguments: runtime_api_impl_params_encoded,
+            overlayed_changes: &self.changes,
+            storage_transaction_cache: &self.storage,
+            initialize_block: initialize_block,
+            context: ExecutionContext::OffchainCall(None),
+            recorder: &None
+        };
+        let res = self.call.call_api_at(call_params);
+        if res.is_ok() {
+            self.changes.borrow_mut().commit_transaction().expect("commit error!");
+        } else {
+            self.changes.borrow_mut().rollback_transaction().expect("rollback error!");
+        }
+        let res = res.and_then(|r| match r {
+            sp_api::NativeOrEncoded::Native(n) => Ok(n),
+            sp_api::NativeOrEncoded::Encoded(r) =>
+                < () as sp_api::Decode>::decode (& mut & r [..])
+                    .map_err (| err | sp_api :: ApiError :: FailedToDecodeReturnValue {
+                        function : "Core_initialise_block" ,
+                        error : err , }) });
+        res
     }
     fn Core_version_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<()>, _: Vec<u8>)
                                      -> std::result::Result<NativeOrEncoded<RuntimeVersion>, sp_api::ApiError> {
@@ -318,7 +397,41 @@ impl<C,Block> sp_api::Metadata<Block> for MockRuntimeAPi<C,Block> where
     fn metadata(&self, at: &BlockId<Block>) -> Result<sp_core::OpaqueMetadata, sp_api::ApiError> {
         // Runtime::metadata().into()
         info!("call metadata");
-        unimplemented!()
+        // unimplemented!()
+        self.changes.borrow_mut().start_transaction();
+        let runtime_api_impl_params_encoded = sp_api::Encode::encode(&());
+        let initialize_block = if true {
+            InitializeBlock::Skip
+        } else {
+            InitializeBlock::Do(&self.initialized_block)
+        };
+        let call_params: CallApiAtParams<'_, Block, MockRuntimeAPi<C, Block>, fn() -> Result<OpaqueMetadata, sp_api::ApiError>, <C as CallApiAt<Block>>::StateBackend>
+            = CallApiAtParams {
+            core_api: self.clone(),
+            at: at,
+            function: "Metadata_metadata",
+            native_call: None,
+            arguments: runtime_api_impl_params_encoded,
+            overlayed_changes: &self.changes,
+            storage_transaction_cache: &self.storage,
+            initialize_block: initialize_block,
+            context: ExecutionContext::OffchainCall(None),
+            recorder: &None
+        };
+        let res = self.call.call_api_at(call_params);
+        if res.is_ok() {
+            self.changes.borrow_mut().commit_transaction().expect("commit error!");
+        } else {
+            self.changes.borrow_mut().rollback_transaction().expect("rollback error!");
+        }
+        let res = res.and_then(|r| match r {
+            sp_api::NativeOrEncoded::Native(n) => Ok(n),
+            sp_api::NativeOrEncoded::Encoded(r) =>
+                < OpaqueMetadata as sp_api::Decode>::decode (& mut & r [..])
+                    .map_err (| err | sp_api :: ApiError :: FailedToDecodeReturnValue {
+                        function : "Metadata_metadata" ,
+                        error : err , }) });
+        res
     }
     fn Metadata_metadata_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<()>, _: Vec<u8>)
                                           -> std::result::Result<NativeOrEncoded<OpaqueMetadata>, sp_api::ApiError> {
@@ -348,8 +461,42 @@ impl<C,Block> sp_block_builder::BlockBuilder<Block> for MockRuntimeAPi<C,Block> 
     }
     fn check_inherents(&self, at: &BlockId<Block>, block: Block, data: InherentData) -> Result<CheckInherentsResult,sp_api::ApiError> {
         // data.check_extrinsics(&block)
-        info!("call check_inherents");
-        unimplemented!()
+        // info!("call check_inherents");
+        // unimplemented!()
+        self.changes.borrow_mut().start_transaction();
+        let runtime_api_impl_params_encoded = sp_api::Encode::encode(&(&block, &data));
+        let initialize_block = if true {
+            InitializeBlock::Skip
+        } else {
+            InitializeBlock::Do(&self.initialized_block)
+        };
+        let call_params: CallApiAtParams<'_, Block, MockRuntimeAPi<C, Block>, fn() -> Result<CheckInherentsResult, sp_api::ApiError>, <C as CallApiAt<Block>>::StateBackend>
+            = CallApiAtParams {
+            core_api: self.clone(),
+            at: at,
+            function: "BlockBuilder_check_inherents",
+            native_call: None,
+            arguments: runtime_api_impl_params_encoded,
+            overlayed_changes: &self.changes,
+            storage_transaction_cache: &self.storage,
+            initialize_block: initialize_block,
+            context: ExecutionContext::OffchainCall(None),
+            recorder: &None
+        };
+        let res = self.call.call_api_at(call_params);
+        if res.is_ok() {
+            self.changes.borrow_mut().commit_transaction().expect("commit error!");
+        } else {
+            self.changes.borrow_mut().rollback_transaction().expect("rollback error!");
+        }
+        let res = res.and_then(|r| match r {
+            sp_api::NativeOrEncoded::Native(n) => Ok(n),
+            sp_api::NativeOrEncoded::Encoded(r) =>
+                < CheckInherentsResult as sp_api::Decode>::decode (& mut & r [..])
+                    .map_err (| err | sp_api :: ApiError :: FailedToDecodeReturnValue {
+                        function : "BlockBuilder_check_inherents" ,
+                        error : err , }) });
+        res
     }
     fn random_seed(&self, at: &BlockId<Block>) -> Result<<Block as BlockT>::Hash, sp_api::ApiError> {
         // pallet_babe::RandomnessFromOneEpochAgo::<Runtime>::random_seed().0
@@ -469,9 +616,9 @@ impl<C,Block> sp_consensus_babe::BabeApi<Block> for MockRuntimeAPi<C,Block> wher
         //     allowed_slots: BABE_GENESIS_EPOCH_CONFIG.allowed_slots,
         // };
         // Ok(_config)
-
+        self.changes.borrow_mut().start_transaction();
         let runtime_api_impl_params_encoded = sp_api::Encode::encode(&());
-        let call_params: CallApiAtParams<'_, Block, MockRuntimeAPi<C, Block>, fn() -> Result<(BabeGenesisConfiguration), sp_api::ApiError>, <C as CallApiAt<Block>>::StateBackend>
+        let call_params: CallApiAtParams<'_, Block, MockRuntimeAPi<C, Block>, fn() -> Result<BabeGenesisConfiguration, sp_api::ApiError>, <C as CallApiAt<Block>>::StateBackend>
             = CallApiAtParams {
             core_api: self.clone(),  // core_api is MockRuntimeApi, because MockRuntimeApi implements triat Core
             at: at,
@@ -494,6 +641,11 @@ impl<C,Block> sp_consensus_babe::BabeApi<Block> for MockRuntimeAPi<C,Block> wher
                     .map_err (| err | sp_api :: ApiError :: FailedToDecodeReturnValue {
                         function : "BabeApi_configuration" ,
                         error : err , }) });
+        if res.is_ok() {
+            self.changes.borrow_mut().commit_transaction().expect("commit error!");
+        } else {
+            self.changes.borrow_mut().rollback_transaction().expect("rollback error!");
+        }
         res
     }
     fn current_epoch_start(&self, _: &BlockId<Block>,) -> Result<Slot, sp_api::ApiError> {
@@ -536,7 +688,7 @@ impl<C,Block> sp_consensus_babe::BabeApi<Block> for MockRuntimeAPi<C,Block> wher
         -> std::result::Result<NativeOrEncoded<BabeGenesisConfiguration>, sp_api::ApiError> {
         info!("call BabeApi_configuration_runtime_api_impl");
         let runtime_api_impl_params_encoded = sp_api::Encode::encode(&());
-        let call_params: CallApiAtParams<'_, Block, MockRuntimeAPi<C, Block>, fn() -> Result<(BabeGenesisConfiguration), sp_api::ApiError>, <C as CallApiAt<Block>>::StateBackend>
+        let call_params: CallApiAtParams<'_, Block, MockRuntimeAPi<C, Block>, fn() -> Result<BabeGenesisConfiguration, sp_api::ApiError>, <C as CallApiAt<Block>>::StateBackend>
             = CallApiAtParams {
             core_api: self.clone(),  // core_api is MockRuntimeApi, because MockRuntimeApi implements triat Core
             at: at,
@@ -579,10 +731,44 @@ impl<C,Block> sp_session::SessionKeys<Block> for MockRuntimeAPi<C,Block> where
         C: CallApiAt<Block> + 'static + Send + Sync,
         C::StateBackend: sp_api::StateBackend<sp_api::HashFor<Block>,>
 {
-    fn generate_session_keys(&self, _: &BlockId<Block>,seed: Option<Vec<u8>>) -> Result<Vec<u8>, sp_api::ApiError> {
+    fn generate_session_keys(&self, at: &BlockId<Block>, seed: Option<Vec<u8>>) -> Result<Vec<u8>, sp_api::ApiError> {
         info!("call generate_session_keys");
-        unimplemented!()
+        // unimplemented!()
         // SessionKeys::generate(seed)
+        self.changes.borrow_mut().start_transaction();
+        let runtime_api_impl_params_encoded = sp_api::Encode::encode(&(&seed));
+        let initialize_block = if true {
+            InitializeBlock::Skip
+        } else {
+            InitializeBlock::Do(&self.initialized_block)
+        };
+        let call_params: CallApiAtParams<'_, Block, MockRuntimeAPi<C, Block>, fn() -> Result<Vec<u8>, sp_api::ApiError>, <C as CallApiAt<Block>>::StateBackend>
+            = CallApiAtParams {
+            core_api: self.clone(),
+            at: at,
+            function: "SessionKeys_generate_session_keys",
+            native_call: None,
+            arguments: runtime_api_impl_params_encoded,
+            overlayed_changes: &self.changes,
+            storage_transaction_cache: &self.storage,
+            initialize_block: initialize_block,
+            context: ExecutionContext::OffchainCall(None),
+            recorder: &None
+        };
+        let res = self.call.call_api_at(call_params);
+        if res.is_ok() {
+            self.changes.borrow_mut().commit_transaction().expect("commit error!");
+        } else {
+            self.changes.borrow_mut().rollback_transaction().expect("rollback error!");
+        }
+        let res = res.and_then(|r| match r {
+            sp_api::NativeOrEncoded::Native(n) => Ok(n),
+            sp_api::NativeOrEncoded::Encoded(r) =>
+                < Vec<u8> as sp_api::Decode>::decode (& mut & r [..])
+                    .map_err (| err | sp_api :: ApiError :: FailedToDecodeReturnValue {
+                        function : "SessionKeys_generate_session_keys" ,
+                        error : err , }) });
+        res
     }
     fn decode_session_keys(&self, _: &BlockId<Block>,encoded: Vec<u8>) -> Result<Option<Vec<(Vec<u8>, KeyTypeId)>>, sp_api::ApiError> {
         info!("call decode_session_keys");
@@ -592,9 +778,11 @@ impl<C,Block> sp_session::SessionKeys<Block> for MockRuntimeAPi<C,Block> where
     fn SessionKeys_generate_session_keys_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<std::option::Option<Vec<u8>>>, _: Vec<u8>)
         -> std::result::Result<NativeOrEncoded<Vec<u8>>, sp_api::ApiError> {
         info!("call SessionKeys_generate_session_keys_runtime_api_impl");
-        todo!() }
+        todo!()
+    }
     fn SessionKeys_decode_session_keys_runtime_api_impl(&self, _: &BlockId<Block>, _: ExecutionContext, _: std::option::Option<Vec<u8>>, _: Vec<u8>)
         -> std::result::Result<NativeOrEncoded<std::option::Option<Vec<(Vec<u8>, KeyTypeId)>>>, sp_api::ApiError> {
         info!("call SessionKeys_decode_session_keys_runtime_api_impl");
-        todo!() }
+        todo!()
+    }
 }

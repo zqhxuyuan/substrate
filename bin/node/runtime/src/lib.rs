@@ -105,6 +105,38 @@ pub fn wasm_binary_unwrap() -> &'static [u8] {
 						production chains. Please rebuild with the flag disabled.")
 }
 
+// const RUNTIME_API_VERSIONS: self::sp_api_hidden_includes_IMPL_RUNTIME_APIS::sp_api::ApisVec =
+// 	::sp_version::sp_std::borrow::Cow::Borrowed(&[
+// 		(
+// 			sp_api::ID,
+// 			sp_api::runtime_decl_for_Core::VERSION,
+// 		),
+// 		(
+// 			sp_api::runtime_decl_for_Metadata::ID,
+// 			sp_api::runtime_decl_for_Metadata::VERSION,
+// 		),
+// 		(
+// 			sp_block_builder::runtime_decl_for_BlockBuilder::ID,
+// 			sp_block_builder::runtime_decl_for_BlockBuilder::VERSION,
+// 		),
+// 		(
+// 			sp_transaction_pool::runtime_api::runtime_decl_for_TaggedTransactionQueue::ID,
+// 			sp_transaction_pool::runtime_api::runtime_decl_for_TaggedTransactionQueue::VERSION,
+// 		),
+// 		(
+// 			fg_primitives::runtime_decl_for_GrandpaApi::ID,
+// 			fg_primitives::runtime_decl_for_GrandpaApi::VERSION,
+// 		),
+// 		(
+// 			sp_consensus_babe::runtime_decl_for_BabeApi::ID,
+// 			sp_consensus_babe::runtime_decl_for_BabeApi::VERSION,
+// 		),
+// 		(
+// 			sp_session::runtime_decl_for_SessionKeys::ID,
+// 			sp_session::runtime_decl_for_SessionKeys::VERSION,
+// 		),
+// 	]);
+
 /// Runtime version.
 pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("node"),

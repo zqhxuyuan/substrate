@@ -482,7 +482,7 @@ impl<B: BlockT + 'static, H: ExHashT> TransactionsHandler<B, H> {
 		if !self.gossip_enabled.load(Ordering::Relaxed) {
 			return;
 		}
-		error!("propagate_transactions not supported in archive mode!");
+		// error!("propagate_transactions not supported in archive mode!");
 		// debug!(target: "sync", "Propagating transactions");
 		// let transactions = self.transaction_pool.transactions();
 		// let propagated_to = self.do_propagate_transactions(&transactions);

@@ -4199,7 +4199,7 @@ dependencies = [
  "sp-transaction-pool",
  "sp-version",
  "static_assertions",
- "substrate-wasm-builder",
+ "substrate-wasm-builder 3.0.0",
 ]
 
 [[package]]
@@ -7340,7 +7340,7 @@ dependencies = [
  "sp-sandbox",
  "sp-std",
  "sp-tasks",
- "substrate-wasm-builder",
+ "substrate-wasm-builder 4.0.0",
 ]
 
 [[package]]
@@ -8862,6 +8862,22 @@ dependencies = [
 
 [[package]]
 name = "substrate-wasm-builder"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79091baab813855ddf65b191de9fe53e656b6b67c1e9bd23fdcbff8788164684"
+dependencies = [
+ "ansi_term 0.12.1",
+ "atty",
+ "build-helper",
+ "cargo_metadata",
+ "tempfile",
+ "toml",
+ "walkdir",
+ "wasm-gc-api",
+]
+
+[[package]]
+name = "substrate-wasm-builder"
 version = "4.0.0"
 dependencies = [
  "ansi_term 0.12.1",
@@ -9541,7 +9557,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04f8ab788026715fa63b31960869617cba39117e520eb415b0139543e325ab59"
 dependencies = [
  "cfg-if 0.1.10",
- "rand 0.3.23",
+ "rand 0.7.3",
  "static_assertions",
 ]
 
