@@ -22,7 +22,7 @@
 use super::*;
 
 use frame_support::{
-	assert_ok, assert_noop, parameter_types, assert_err_ignore_postinfo,
+	assert_ok, assert_noop, parameter_types, assert_err_ignore_postinfo, decl_module,
 	weights::{Weight, Pays},
 	dispatch::{DispatchError, DispatchErrorWithPostInfo, Dispatchable},
 	traits::Filter,
@@ -35,7 +35,8 @@ use crate as utility;
 // example module to test behaviors.
 pub mod example {
 	use super::*;
-	use frame_support::dispatch::WithPostDispatchInfo;
+	use frame_system::ensure_signed;
+	use frame_support::dispatch::{DispatchResultWithPostInfo, WithPostDispatchInfo};
 	pub trait Config: frame_system::Config { }
 
 	decl_module! {
@@ -168,14 +169,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 	let mut ext = sp_io::TestExternalities::new(t);
 	ext.execute_with(|| System::set_block_number(1));
 	ext
-}
-
-fn last_event() -> Event {
-	frame_system::Pallet::<Test>::events().pop().map(|e| e.event).expect("Event expected")
-}
-
-fn expect_event<E: Into<Event>>(e: E) {
-	assert_eq!(last_event(), e.into());
 }
 
 #[test]
@@ -312,7 +305,7 @@ fn batch_with_signed_filters() {
 				Call::Balances(pallet_balances::Call::transfer_keep_alive(2, 1))
 			]),
 		);
-		expect_event(utility::Event::BatchInterrupted(0, DispatchError::BadOrigin));
+		System::assert_last_event(utility::Event::BatchInterrupted(0, DispatchError::BadOrigin).into());
 	});
 }
 
@@ -386,7 +379,7 @@ fn batch_handles_weight_refund() {
 		let info = call.get_dispatch_info();
 		let result = call.dispatch(Origin::signed(1));
 		assert_ok!(result);
-		expect_event(utility::Event::BatchInterrupted(1, DispatchError::Other("")));
+		System::assert_last_event(utility::Event::BatchInterrupted(1, DispatchError::Other("")).into());
 		// No weight is refunded
 		assert_eq!(extract_actual_weight(&result, &info), info.weight);
 
@@ -399,7 +392,7 @@ fn batch_handles_weight_refund() {
 		let info = call.get_dispatch_info();
 		let result = call.dispatch(Origin::signed(1));
 		assert_ok!(result);
-		expect_event(utility::Event::BatchInterrupted(1, DispatchError::Other("")));
+		System::assert_last_event(utility::Event::BatchInterrupted(1, DispatchError::Other("")).into());
 		assert_eq!(extract_actual_weight(&result, &info), info.weight - diff * batch_len);
 
 		// Partial batch completion
@@ -410,7 +403,7 @@ fn batch_handles_weight_refund() {
 		let info = call.get_dispatch_info();
 		let result = call.dispatch(Origin::signed(1));
 		assert_ok!(result);
-		expect_event(utility::Event::BatchInterrupted(1, DispatchError::Other("")));
+		System::assert_last_event(utility::Event::BatchInterrupted(1, DispatchError::Other("")).into());
 		assert_eq!(
 			extract_actual_weight(&result, &info),
 			// Real weight is 2 calls at end_weight
