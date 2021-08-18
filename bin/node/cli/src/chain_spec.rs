@@ -23,9 +23,9 @@ use sp_core::{Pair, Public, crypto::UncheckedInto, sr25519};
 use serde::{Serialize, Deserialize};
 use node_runtime::{
 	AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, CouncilConfig,
-	DemocracyConfig, GrandpaConfig, ImOnlineConfig, SessionConfig, SessionKeys, StakerStatus,
-	StakingConfig, ElectionsConfig, IndicesConfig, SocietyConfig, SudoConfig, SystemConfig,
-	TechnicalCommitteeConfig, wasm_binary_unwrap, MAX_NOMINATIONS,
+	GrandpaConfig, ImOnlineConfig, SessionConfig, SessionKeys, StakerStatus,
+	StakingConfig, ElectionsConfig, IndicesConfig, SudoConfig, SystemConfig,
+	wasm_binary_unwrap, MAX_NOMINATIONS,
 };
 use node_runtime::Block;
 use node_runtime::constants::currency::*;
@@ -291,7 +291,7 @@ pub fn testnet_genesis(
 			stakers,
 			.. Default::default()
 		},
-		democracy: DemocracyConfig::default(),
+		// democracy: DemocracyConfig::default(),
 		elections: ElectionsConfig {
 			members: endowed_accounts.iter()
 						.take((num_endowed_accounts + 1) / 2)
@@ -300,13 +300,13 @@ pub fn testnet_genesis(
 						.collect(),
 		},
 		council: CouncilConfig::default(),
-		technical_committee: TechnicalCommitteeConfig {
-			members: endowed_accounts.iter()
-						.take((num_endowed_accounts + 1) / 2)
-						.cloned()
-						.collect(),
-			phantom: Default::default(),
-		},
+		// technical_committee: TechnicalCommitteeConfig {
+		// 	members: endowed_accounts.iter()
+		// 				.take((num_endowed_accounts + 1) / 2)
+		// 				.cloned()
+		// 				.collect(),
+		// 	phantom: Default::default(),
+		// },
 		sudo: SudoConfig {
 			key: root_key,
 		},
@@ -323,19 +323,19 @@ pub fn testnet_genesis(
 		grandpa: GrandpaConfig {
 			authorities: vec![],
 		},
-		technical_membership: Default::default(),
-		treasury: Default::default(),
-		society: SocietyConfig {
-			members: endowed_accounts.iter()
-						.take((num_endowed_accounts + 1) / 2)
-						.cloned()
-						.collect(),
-			pot: 0,
-			max_members: 999,
-		},
-		vesting: Default::default(),
-		gilt: Default::default(),
-		transaction_storage: Default::default(),
+		// technical_membership: Default::default(),
+		// treasury: Default::default(),
+		// society: SocietyConfig {
+		// 	members: endowed_accounts.iter()
+		// 				.take((num_endowed_accounts + 1) / 2)
+		// 				.cloned()
+		// 				.collect(),
+		// 	pot: 0,
+		// 	max_members: 999,
+		// },
+		// vesting: Default::default(),
+		// gilt: Default::default(),
+		// transaction_storage: Default::default(),
 	}
 }
 

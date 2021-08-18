@@ -22,7 +22,7 @@ use crate::keyring::*;
 use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 use node_runtime::{
 	GenesisConfig, BalancesConfig, SessionConfig, StakingConfig, SystemConfig,
-	GrandpaConfig, IndicesConfig, SocietyConfig, wasm_binary_unwrap,
+	GrandpaConfig, IndicesConfig, wasm_binary_unwrap,
 	AccountId, StakerStatus, BabeConfig, BABE_GENESIS_EPOCH_CONFIG,
 };
 use node_runtime::constants::currency::*;
@@ -106,20 +106,20 @@ pub fn config_endowed(
 		},
 		im_online: Default::default(),
 		authority_discovery: Default::default(),
-		democracy: Default::default(),
+		// democracy: Default::default(),
 		council: Default::default(),
-		technical_committee: Default::default(),
-		technical_membership: Default::default(),
+		// technical_committee: Default::default(),
+		// technical_membership: Default::default(),
 		elections: Default::default(),
 		sudo: Default::default(),
-		treasury: Default::default(),
-		society: SocietyConfig {
-			members: vec![alice(), bob()],
-			pot: 0,
-			max_members: 999,
-		},
-		vesting: Default::default(),
-		gilt: Default::default(),
-		transaction_storage: Default::default(),
+		// treasury: Default::default(),
+		// society: SocietyConfig {
+		// 	members: vec![alice(), bob()],
+		// 	pot: 0,
+		// 	max_members: 999,
+		// },
+		// vesting: Default::default(),
+		// gilt: Default::default(),
+		// transaction_storage: Default::default(),
 	}
 }
