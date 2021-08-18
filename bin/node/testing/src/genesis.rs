@@ -22,7 +22,7 @@ use crate::keyring::*;
 use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
 use node_runtime::{
 	GenesisConfig, BalancesConfig, SessionConfig, StakingConfig, SystemConfig,
-	GrandpaConfig, IndicesConfig, wasm_binary_unwrap,
+	GrandpaConfig, wasm_binary_unwrap,
 	AccountId, StakerStatus, BabeConfig, BABE_GENESIS_EPOCH_CONFIG,
 };
 use node_runtime::constants::currency::*;
@@ -63,9 +63,9 @@ pub fn config_endowed(
 			}) } else { None },
 			code: code.map(|x| x.to_vec()).unwrap_or_else(|| wasm_binary_unwrap().to_vec()),
 		},
-		indices: IndicesConfig {
-			indices: vec![],
-		},
+		// indices: IndicesConfig {
+		// 	indices: vec![],
+		// },
 		balances: BalancesConfig {
 			balances: endowed,
 		},
@@ -104,13 +104,13 @@ pub fn config_endowed(
 		grandpa: GrandpaConfig {
 			authorities: vec![],
 		},
-		im_online: Default::default(),
+		// im_online: Default::default(),
 		authority_discovery: Default::default(),
 		// democracy: Default::default(),
-		council: Default::default(),
+		// council: Default::default(),
 		// technical_committee: Default::default(),
 		// technical_membership: Default::default(),
-		elections: Default::default(),
+		// elections: Default::default(),
 		sudo: Default::default(),
 		// treasury: Default::default(),
 		// society: SocietyConfig {

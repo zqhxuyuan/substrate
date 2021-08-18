@@ -22,9 +22,9 @@ use sc_chain_spec::ChainSpecExtension;
 use sp_core::{Pair, Public, crypto::UncheckedInto, sr25519};
 use serde::{Serialize, Deserialize};
 use node_runtime::{
-	AuthorityDiscoveryConfig, BabeConfig, BalancesConfig, CouncilConfig,
-	GrandpaConfig, ImOnlineConfig, SessionConfig, SessionKeys, StakerStatus,
-	StakingConfig, ElectionsConfig, IndicesConfig, SudoConfig, SystemConfig,
+	AuthorityDiscoveryConfig, BabeConfig, BalancesConfig,
+	GrandpaConfig, SessionConfig, SessionKeys, StakerStatus,
+	StakingConfig, SudoConfig, SystemConfig,
 	wasm_binary_unwrap, MAX_NOMINATIONS,
 };
 use node_runtime::Block;
@@ -74,7 +74,7 @@ fn session_keys(
 	im_online: ImOnlineId,
 	authority_discovery: AuthorityDiscoveryId,
 ) -> SessionKeys {
-	SessionKeys { grandpa, babe, im_online, authority_discovery }
+	SessionKeys { grandpa, babe, authority_discovery }
 }
 
 fn staging_testnet_config_genesis() -> GenesisConfig {
@@ -270,9 +270,9 @@ pub fn testnet_genesis(
 				.map(|x| (x, ENDOWMENT))
 				.collect()
 		},
-		indices: IndicesConfig {
-			indices: vec![],
-		},
+		// indices: IndicesConfig {
+		// 	indices: vec![],
+		// },
 		session: SessionConfig {
 			keys: initial_authorities.iter().map(|x| {
 				(x.0.clone(), x.0.clone(), session_keys(
@@ -292,14 +292,14 @@ pub fn testnet_genesis(
 			.. Default::default()
 		},
 		// democracy: DemocracyConfig::default(),
-		elections: ElectionsConfig {
-			members: endowed_accounts.iter()
-						.take((num_endowed_accounts + 1) / 2)
-						.cloned()
-						.map(|member| (member, STASH))
-						.collect(),
-		},
-		council: CouncilConfig::default(),
+		// elections: ElectionsConfig {
+		// 	members: endowed_accounts.iter()
+		// 				.take((num_endowed_accounts + 1) / 2)
+		// 				.cloned()
+		// 				.map(|member| (member, STASH))
+		// 				.collect(),
+		// },
+		// council: CouncilConfig::default(),
 		// technical_committee: TechnicalCommitteeConfig {
 		// 	members: endowed_accounts.iter()
 		// 				.take((num_endowed_accounts + 1) / 2)
@@ -314,9 +314,9 @@ pub fn testnet_genesis(
 			authorities: vec![],
 			epoch_config: Some(node_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
-		im_online: ImOnlineConfig {
-			keys: vec![],
-		},
+		// im_online: ImOnlineConfig {
+		// 	keys: vec![],
+		// },
 		authority_discovery: AuthorityDiscoveryConfig {
 			keys: vec![],
 		},
