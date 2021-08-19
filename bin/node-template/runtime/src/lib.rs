@@ -230,7 +230,7 @@ impl pallet_timestamp::Config for Runtime {
 }
 
 parameter_types! {
-	pub const ExistentialDeposit: u128 = 0;
+	pub const ExistentialDeposit: u128 = 10000000000000;
 	pub const MaxLocks: u32 = 50;
 }
 

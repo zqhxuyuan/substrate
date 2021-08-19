@@ -206,6 +206,7 @@ members = [
 	"utils/wasm-builder",
 #	"modules/traits",
 #	"modules/tokens",
+	"modules/common",
 	"modules/balances",
 ]
 

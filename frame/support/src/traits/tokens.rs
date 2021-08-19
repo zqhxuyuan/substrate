@@ -25,6 +25,6 @@ pub mod nonfungible;
 pub mod nonfungibles;
 mod misc;
 pub use misc::{
-	WithdrawConsequence, DepositConsequence, ExistenceRequirement, BalanceStatus, WithdrawReasons,
+	WithdrawConsequence, DepositConsequence, ExistenceRequirement, BalanceStatus, WithdrawReasons, Balance
 };
 pub use imbalance::Imbalance;

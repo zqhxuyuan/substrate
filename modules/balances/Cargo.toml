@@ -19,6 +19,7 @@ sp-runtime = { version = "4.0.0-dev", default-features = false, path = "../../pr
 #frame-benchmarking = { version = "4.0.0-dev", default-features = false, path = "../benchmarking", optional = true }
 frame-support = { version = "4.0.0-dev", default-features = false, path = "../../frame/support" }
 frame-system = { version = "4.0.0-dev", default-features = false, path = "../../frame/system" }
+module-common = { version = "4.0.0-dev", default-features = false, path = "../common" }
 log = { version = "0.4.14", default-features = false }
 
 [dev-dependencies]
@@ -36,6 +37,7 @@ std = [
 	"frame-support/std",
 	"frame-system/std",
 	"log/std",
+	"module-common/std",
 ]
 #runtime-benchmarks = ["frame-benchmarking"]
 #try-runtime = ["frame-support/try-runtime"]
