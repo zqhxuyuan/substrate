@@ -26,8 +26,8 @@
 //! These roots and proofs of inclusion can be generated at any time during the current session.
 //! Afterwards, the proofs can be fed to a consensus module when reporting misbehavior.
 
-// use super::{Pallet as SessionPallet, SessionIndex};
-use crate::{pallet::Pallet as SessionPallet, SessionIndex, pallet::Config as SessionConfig};
+use super::{Pallet as SessionPallet, SessionIndex, Config as SessionConfig};
+// use crate::{pallet::Pallet as SessionPallet, SessionIndex, pallet::Config as SessionConfig};
 use codec::{Decode, Encode};
 use frame_support::{
 	print,
@@ -44,14 +44,12 @@ use sp_trie::{
 	trie_types::{TrieDB, TrieDBMut},
 	MemoryDB, Recorder, Trie, TrieMut, EMPTY_PREFIX,
 };
-// use crate::historical::pallet::{Config, Pallet, StoredRange, HistoricalSessions};
 
 pub mod offchain;
 pub mod onchain;
 mod shared;
 
-// pub use pallet::*;
-pub use crate::historical::pallet::*;
+pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
@@ -95,7 +93,7 @@ pub mod pallet {
 	/// The range of historical sessions we store. [first, last)
 	// StoredRange: Option<(SessionIndex, SessionIndex)>;
 	#[pallet::storage]
-	pub type StoredRange<T: Config> = StorageValue<_, Option<(SessionIndex, SessionIndex)>, ValueQuery>;
+	pub(super) type StoredRange<T> = StorageValue<_, Option<(SessionIndex, SessionIndex)>, ValueQuery>;
 	
 	/// Deprecated.
 	// CachedObsolete: map hasher(twox_64_concat) SessionIndex
@@ -114,7 +112,7 @@ impl<T: Config> Pallet<T> {
 	/// Prune historical stored session roots up to (but not including)
 	/// `up_to`.
 	pub fn prune_up_to(up_to: SessionIndex) {
-		<Self as Store>::StoredRange::mutate(|range| {
+		<StoredRange<T>>::mutate(|range| {
 			let (start, end) = match *range {
 				Some(range) => range,
 				None => return, // nothing to prune.
@@ -126,7 +124,7 @@ impl<T: Config> Pallet<T> {
 				return // out of bounds. harmless.
 			}
 
-			(start..up_to).for_each(<Self as Store>::HistoricalSessions::remove);
+			(start..up_to).for_each(<HistoricalSessions<T>>::remove);
 
 			let new_start = up_to;
 			*range = if new_start == end {
@@ -143,11 +141,13 @@ impl<T: Config> ValidatorSet<T::AccountId> for Pallet<T> {
 	type ValidatorIdOf = T::ValidatorIdOf;
 
 	fn session_index() -> sp_staking::SessionIndex {
-		super::Pallet::<T>::current_index()
+		// super::Pallet::<T>::current_index()
+		<SessionPallet<T>>::current_index()
 	}
 
 	fn validators() -> Vec<Self::ValidatorId> {
-		super::Pallet::<T>::validators()
+		// super::Pallet::<T>::validators()
+		<SessionPallet<T>>::validators()
 	}
 }
 
@@ -179,7 +179,7 @@ pub struct NoteHistoricalRoot<T, I>(sp_std::marker::PhantomData<(T, I)>);
 
 impl<T: Config, I: SessionManager<T::ValidatorId, T::FullIdentification>> NoteHistoricalRoot<T, I> {
 	fn do_new_session(new_index: SessionIndex, is_genesis: bool) -> Option<Vec<T::ValidatorId>> {
-		StoredRange::mutate(|range| {
+		<StoredRange<T>>::mutate(|range| {
 			range.get_or_insert_with(|| (new_index, new_index)).1 = new_index + 1;
 		});
 

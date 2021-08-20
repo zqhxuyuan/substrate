@@ -21,10 +21,10 @@ use codec::Encode;
 use sp_runtime::traits::Convert;
 
 use super::{
-	// super::{Config as SessionConfig, Pallet as SessionPallet, SessionIndex},
+	super::{Config as SessionConfig, Pallet as SessionPallet, SessionIndex},
 	Config as HistoricalConfig,
 };
-use crate::{Config as SessionConfig, pallet::Pallet as SessionPallet, SessionIndex};
+// use crate::{Config as SessionConfig, pallet::Pallet as SessionPallet, SessionIndex};
 
 use super::shared;
 use sp_std::prelude::*;

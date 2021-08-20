@@ -32,10 +32,10 @@ use sp_runtime::{
 use sp_session::MembershipProof;
 
 use super::{
-	// super::{Pallet as SessionPallet, SessionIndex},
+	super::{Pallet as SessionPallet, SessionIndex},
 	Config, IdentificationTuple, ProvingTrie,
 };
-use crate::{pallet::Pallet as SessionPallet, SessionIndex};
+// use crate::{pallet::Pallet as SessionPallet, SessionIndex};
 
 use super::shared;
 use sp_std::prelude::*;

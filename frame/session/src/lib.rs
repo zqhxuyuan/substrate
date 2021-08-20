@@ -114,7 +114,7 @@ mod mock;
 mod tests;
 pub mod weights;
 
-use codec::Decode;
+use codec::{Codec, Decode, Encode, EncodeLike};
 #[cfg(feature = "std")]
 use frame_support::traits::GenesisBuild;
 use frame_support::{
@@ -139,6 +139,7 @@ use sp_std::{
 	prelude::*,
 };
 pub use weights::WeightInfo;
+use sp_runtime::traits::MaybeSerializeDeserialize;
 
 /// Decides whether the session should be ended.
 pub trait ShouldEndSession<BlockNumber> {
@@ -397,6 +398,7 @@ pub mod pallet {
 		type SessionHandler: SessionHandler<Self::ValidatorId>;
 
 		/// The keys.
+		// type Keys: OpaqueKeys + Member + Parameter + Default + MaybeSerializeDeserialize + EncodeLike + Codec;
 		type Keys: OpaqueKeys + Member + Parameter + Default + MaybeSerializeDeserialize;
 
 		/// The fraction of validators set that is safe to be disabled.
@@ -420,13 +422,13 @@ pub mod pallet {
 	// CurrentIndex get(fn current_index): SessionIndex;
 	#[pallet::storage]
 	#[pallet::getter(fn current_index)]
-	pub(super) type CurrentIndex<T: Config> = StorageValue<_, SessionIndex, ValueQuery>;
+	pub(super) type CurrentIndex<T> = StorageValue<_, SessionIndex, ValueQuery>;
 
 	/// True if the underlying economic identities or weighting behind the validators
     /// has changed in the queued validator set.
 	// QueuedChanged: bool;
 	#[pallet::storage]
-	pub(super) type QueuedChanged<T: Config> = StorageValue<_, bool, ValueQuery>;
+	pub(super) type QueuedChanged<T> = StorageValue<_, bool, ValueQuery>;
 
 	/// The queued keys for the next session. When the next session begins, these keys
     /// will be used to determine the validator's session keys.
@@ -441,7 +443,7 @@ pub mod pallet {
 	// DisabledValidators get(fn disabled_validators): Vec<u32>;
 	#[pallet::storage]
 	#[pallet::getter(fn disabled_validators)]
-	pub(super) type DisabledValidators<T: Config> = StorageValue<_, Vec<u32>, ValueQuery>;
+	pub(super) type DisabledValidators<T> = StorageValue<_, Vec<u32>, ValueQuery>;
 
 	/// The next session keys for a validator.
 	// NextKeys: map hasher(twox_64_concat) T::ValidatorId => Option<T::Keys>;
@@ -529,9 +531,10 @@ pub mod pallet {
 		/// - DbWrites per key id: `KeyOwner`
 		/// # </weight>
 		#[pallet::weight(T::WeightInfo::purge_keys())]
-		pub fn purge_keys(origin: OriginFor<T>) {
+		pub fn purge_keys(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin)?;
 			Self::do_purge_keys(&who)?;
+			Ok(())
 		}
 	}
 
@@ -647,10 +650,10 @@ impl<T: Config> Pallet<T> {
 	/// validator set have a session of delay to take effect. This allows for equivocation
 	/// punishment after a fork.
 	pub fn rotate_session() {
-		let session_index = CurrentIndex::get();
+		let session_index = <CurrentIndex<T>>::get();
 		log::trace!(target: "runtime::session", "rotating session {:?}", session_index);
 
-		let changed = QueuedChanged::get();
+		let changed = <QueuedChanged<T>>::get();
 
 		// Inform the session handlers that a session is going to end.
 		T::SessionHandler::on_before_session_ending();
@@ -664,12 +667,12 @@ impl<T: Config> Pallet<T> {
 
 		if changed {
 			// reset disabled validators
-			DisabledValidators::take();
+			<DisabledValidators<T>>::take();
 		}
 
 		// Increment session index.
 		let session_index = session_index + 1;
-		CurrentIndex::put(session_index);
+		<CurrentIndex<T>>::put(session_index);
 
 		T::SessionManager::start_session(session_index);
 
@@ -719,7 +722,7 @@ impl<T: Config> Pallet<T> {
 		};
 
 		<QueuedKeys<T>>::put(queued_amalgamated.clone());
-		QueuedChanged::put(next_changed);
+		<QueuedChanged<T>>::put(next_changed);
 
 		// Record that this happened.
 		Self::deposit_event(Event::NewSession(session_index));
@@ -733,7 +736,7 @@ impl<T: Config> Pallet<T> {
 	/// Returns `true` if this causes a `DisabledValidatorsThreshold` of validators
 	/// to be already disabled.
 	pub fn disable_index(i: usize) -> bool {
-		let (fire_event, threshold_reached) = DisabledValidators::mutate(|disabled| {
+		let (fire_event, threshold_reached) = <DisabledValidators<T>>::mutate(|disabled| {
 			let i = i as u32;
 			if let Err(index) = disabled.binary_search(&i) {
 				let count = <Validators<T>>::decode_len().unwrap_or(0) as u32;
@@ -804,7 +807,8 @@ impl<T: Config> Pallet<T> {
 				Self::put_key_owner(*i, new_keys.get_raw(*i), &val);
 			}
 
-			Some(new_keys)
+			// Some(new_keys)
+			None
 		});
 
 		let _ = <QueuedKeys<T>>::translate::<Vec<(T::ValidatorId, Old)>, _>(|k| {
