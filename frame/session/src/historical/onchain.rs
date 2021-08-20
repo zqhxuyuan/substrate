@@ -21,12 +21,14 @@ use codec::Encode;
 use sp_runtime::traits::Convert;
 
 use super::{
-	super::{Config as SessionConfig, Pallet as SessionModule, SessionIndex},
+	// super::{Config as SessionConfig, Pallet as SessionPallet, SessionIndex},
 	Config as HistoricalConfig,
 };
+use crate::{Config as SessionConfig, pallet::Pallet as SessionPallet, SessionIndex};
 
 use super::shared;
 use sp_std::prelude::*;
+use frame_support::traits::ValidatorSet;
 
 /// Store the validator-set associated to the `session_index` to the off-chain database.
 ///
@@ -39,7 +41,7 @@ use sp_std::prelude::*;
 pub fn store_session_validator_set_to_offchain<T: HistoricalConfig + SessionConfig>(
 	session_index: SessionIndex,
 ) {
-	let encoded_validator_list = <SessionModule<T>>::validators()
+	let encoded_validator_list = <SessionPallet<T>>::validators()
 		.into_iter()
 		.filter_map(|validator_id: <T as SessionConfig>::ValidatorId| {
 			let full_identification =
@@ -59,5 +61,5 @@ pub fn store_session_validator_set_to_offchain<T: HistoricalConfig + SessionConf
 /// See [`store_session_validator_set_to_offchain`]
 /// for further information and restrictions.
 pub fn store_current_session_validator_set_to_offchain<T: HistoricalConfig + SessionConfig>() {
-	store_session_validator_set_to_offchain::<T>(<SessionModule<T>>::current_index());
+	store_session_validator_set_to_offchain::<T>(<SessionPallet<T>>::current_index());
 }

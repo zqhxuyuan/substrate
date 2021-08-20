@@ -165,10 +165,11 @@ impl onchain::Config for Test {
 	type DataProvider = Staking;
 }
 
+use pallet_timestamp::Pallet as TimestampPallet;
 impl pallet_staking::Config for Test {
 	const MAX_NOMINATIONS: u32 = 16;
 	type Currency = Balances;
-	type UnixTime = pallet_timestamp::Pallet<Self>;
+	type UnixTime = TimestampPallet<Self>;
 	type CurrencyToVote = frame_support::traits::SaturatingCurrencyToVote;
 	type RewardRemainder = ();
 	type Event = Event;

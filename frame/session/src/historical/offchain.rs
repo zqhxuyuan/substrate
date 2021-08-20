@@ -32,9 +32,10 @@ use sp_runtime::{
 use sp_session::MembershipProof;
 
 use super::{
-	super::{Pallet as SessionModule, SessionIndex},
+	// super::{Pallet as SessionPallet, SessionIndex},
 	Config, IdentificationTuple, ProvingTrie,
 };
+use crate::{pallet::Pallet as SessionPallet, SessionIndex};
 
 use super::shared;
 use sp_std::prelude::*;
@@ -133,7 +134,7 @@ pub fn prune_older_than<T: Config>(first_to_keep: SessionIndex) {
 
 /// Keep the newest `n` items, and prune all items older than that.
 pub fn keep_newest<T: Config>(n_to_keep: usize) {
-	let session_index = <SessionModule<T>>::current_index();
+	let session_index = <SessionPallet<T>>::current_index();
 	let n_to_keep = n_to_keep as SessionIndex;
 	if n_to_keep < session_index {
 		prune_older_than::<T>(session_index - n_to_keep)
@@ -143,7 +144,7 @@ pub fn keep_newest<T: Config>(n_to_keep: usize) {
 #[cfg(test)]
 mod tests {
 	use super::{
-		super::{onchain, Module},
+		super::{onchain, Pallet},
 		*,
 	};
 	use crate::mock::{
@@ -159,7 +160,7 @@ mod tests {
 	use frame_support::BasicExternalities;
 	use sp_runtime::testing::UintAuthorityId;
 
-	type Historical = Module<Test>;
+	type Historical = Pallet<Test>;
 
 	pub fn new_test_ext() -> sp_io::TestExternalities {
 		let mut t = frame_system::GenesisConfig::default()
@@ -239,7 +240,7 @@ mod tests {
 
 			// "on-chain"
 			onchain::store_current_session_validator_set_to_offchain::<Test>();
-			assert_eq!(<SessionModule<Test>>::current_index(), 1);
+			assert_eq!(<SessionPallet<Test>>::current_index(), 1);
 
 			set_next_validators(vec![7, 8]);
 
@@ -251,7 +252,7 @@ mod tests {
 		ext.execute_with(|| {
 			System::set_block_number(2);
 			Session::on_initialize(2);
-			assert_eq!(<SessionModule<Test>>::current_index(), 2);
+			assert_eq!(<SessionPallet<Test>>::current_index(), 2);
 
 			// "off-chain"
 			let proof = prove_session_membership::<Test, _>(1, (DUMMY, &encoded_key_1));
