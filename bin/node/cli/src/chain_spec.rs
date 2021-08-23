@@ -22,9 +22,9 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use node_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
-	BalancesConfig, Block, CouncilConfig, DemocracyConfig, ElectionsConfig, GrandpaConfig,
-	ImOnlineConfig, IndicesConfig, SessionConfig, SessionKeys, SocietyConfig, StakerStatus,
-	StakingConfig, SudoConfig, SystemConfig, TechnicalCommitteeConfig, MAX_NOMINATIONS,
+	BalancesConfig, Block, GrandpaConfig,
+	IndicesConfig, SessionConfig, SessionKeys, StakerStatus,
+	StakingConfig, SudoConfig, SystemConfig, MAX_NOMINATIONS,
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_chain_spec::ChainSpecExtension;
@@ -71,10 +71,10 @@ pub fn flaming_fir_config() -> Result<ChainSpec, String> {
 fn session_keys(
 	grandpa: GrandpaId,
 	babe: BabeId,
-	im_online: ImOnlineId,
+	// im_online: ImOnlineId,
 	authority_discovery: AuthorityDiscoveryId,
 ) -> SessionKeys {
-	SessionKeys { grandpa, babe, im_online, authority_discovery }
+	SessionKeys { grandpa, babe, authority_discovery }
 }
 
 fn staging_testnet_config_genesis() -> GenesisConfig {
@@ -310,7 +310,7 @@ pub fn testnet_genesis(
 					(
 						x.0.clone(),
 						x.0.clone(),
-						session_keys(x.2.clone(), x.3.clone(), x.4.clone(), x.5.clone()),
+						session_keys(x.2.clone(), x.3.clone(), x.5.clone()),
 					)
 				})
 				.collect::<Vec<_>>(),
@@ -323,46 +323,46 @@ pub fn testnet_genesis(
 			stakers,
 			..Default::default()
 		},
-		democracy: DemocracyConfig::default(),
-		elections: ElectionsConfig {
-			members: endowed_accounts
-				.iter()
-				.take((num_endowed_accounts + 1) / 2)
-				.cloned()
-				.map(|member| (member, STASH))
-				.collect(),
-		},
-		council: CouncilConfig::default(),
-		technical_committee: TechnicalCommitteeConfig {
-			members: endowed_accounts
-				.iter()
-				.take((num_endowed_accounts + 1) / 2)
-				.cloned()
-				.collect(),
-			phantom: Default::default(),
-		},
+		// democracy: DemocracyConfig::default(),
+		// elections: ElectionsConfig {
+		// 	members: endowed_accounts
+		// 		.iter()
+		// 		.take((num_endowed_accounts + 1) / 2)
+		// 		.cloned()
+		// 		.map(|member| (member, STASH))
+		// 		.collect(),
+		// },
+		// council: CouncilConfig::default(),
+		// technical_committee: TechnicalCommitteeConfig {
+		// 	members: endowed_accounts
+		// 		.iter()
+		// 		.take((num_endowed_accounts + 1) / 2)
+		// 		.cloned()
+		// 		.collect(),
+		// 	phantom: Default::default(),
+		// },
 		sudo: SudoConfig { key: root_key },
 		babe: BabeConfig {
 			authorities: vec![],
 			epoch_config: Some(node_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
-		im_online: ImOnlineConfig { keys: vec![] },
+		// im_online: ImOnlineConfig { keys: vec![] },
 		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
 		grandpa: GrandpaConfig { authorities: vec![] },
-		technical_membership: Default::default(),
-		treasury: Default::default(),
-		society: SocietyConfig {
-			members: endowed_accounts
-				.iter()
-				.take((num_endowed_accounts + 1) / 2)
-				.cloned()
-				.collect(),
-			pot: 0,
-			max_members: 999,
-		},
-		vesting: Default::default(),
-		gilt: Default::default(),
-		transaction_storage: Default::default(),
+		// technical_membership: Default::default(),
+		// treasury: Default::default(),
+		// society: SocietyConfig {
+		// 	members: endowed_accounts
+		// 		.iter()
+		// 		.take((num_endowed_accounts + 1) / 2)
+		// 		.cloned()
+		// 		.collect(),
+		// 	pot: 0,
+		// 	max_members: 999,
+		// },
+		// vesting: Default::default(),
+		// gilt: Default::default(),
+		// transaction_storage: Default::default(),
 	}
 }
 
