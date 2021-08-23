@@ -28,10 +28,10 @@ frame-support = { version = "4.0.0-dev", path = "../../../frame/support" }
 frame-system = { version = "4.0.0-dev", path = "../../../frame/system" }
 node-testing = { version = "3.0.0-dev", path = "../testing" }
 pallet-balances = { version = "4.0.0-dev", path = "../../../frame/balances" }
-pallet-contracts = { version = "4.0.0-dev", path = "../../../frame/contracts" }
+#pallet-contracts = { version = "4.0.0-dev", path = "../../../frame/contracts" }
 pallet-im-online = { version = "4.0.0-dev", path = "../../../frame/im-online" }
 pallet-timestamp = { version = "4.0.0-dev", path = "../../../frame/timestamp" }
-pallet-treasury = { version = "4.0.0-dev", path = "../../../frame/treasury" }
+#pallet-treasury = { version = "4.0.0-dev", path = "../../../frame/treasury" }
 sp-application-crypto = { version = "4.0.0-dev", path = "../../../primitives/application-crypto" }
 sp-consensus-babe = { version = "0.10.0-dev", path = "../../../primitives/consensus/babe" }
 sp-runtime = { version = "4.0.0-dev", path = "../../../primitives/runtime" }

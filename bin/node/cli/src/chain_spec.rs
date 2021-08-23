@@ -22,8 +22,8 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use node_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
-	BalancesConfig, Block, GrandpaConfig,
-	IndicesConfig, SessionConfig, SessionKeys, StakerStatus,
+	BalancesConfig, Block, GrandpaConfig, ImOnlineConfig,
+	SessionConfig, SessionKeys, StakerStatus,
 	StakingConfig, SudoConfig, SystemConfig, MAX_NOMINATIONS,
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
@@ -302,7 +302,7 @@ pub fn testnet_genesis(
 		balances: BalancesConfig {
 			balances: endowed_accounts.iter().cloned().map(|x| (x, ENDOWMENT)).collect(),
 		},
-		indices: IndicesConfig { indices: vec![] },
+		// indices: IndicesConfig { indices: vec![] },
 		session: SessionConfig {
 			keys: initial_authorities
 				.iter()
@@ -323,46 +323,14 @@ pub fn testnet_genesis(
 			stakers,
 			..Default::default()
 		},
-		// democracy: DemocracyConfig::default(),
-		// elections: ElectionsConfig {
-		// 	members: endowed_accounts
-		// 		.iter()
-		// 		.take((num_endowed_accounts + 1) / 2)
-		// 		.cloned()
-		// 		.map(|member| (member, STASH))
-		// 		.collect(),
-		// },
-		// council: CouncilConfig::default(),
-		// technical_committee: TechnicalCommitteeConfig {
-		// 	members: endowed_accounts
-		// 		.iter()
-		// 		.take((num_endowed_accounts + 1) / 2)
-		// 		.cloned()
-		// 		.collect(),
-		// 	phantom: Default::default(),
-		// },
 		sudo: SudoConfig { key: root_key },
 		babe: BabeConfig {
 			authorities: vec![],
 			epoch_config: Some(node_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
-		// im_online: ImOnlineConfig { keys: vec![] },
+		im_online: ImOnlineConfig { keys: vec![] },
 		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
 		grandpa: GrandpaConfig { authorities: vec![] },
-		// technical_membership: Default::default(),
-		// treasury: Default::default(),
-		// society: SocietyConfig {
-		// 	members: endowed_accounts
-		// 		.iter()
-		// 		.take((num_endowed_accounts + 1) / 2)
-		// 		.cloned()
-		// 		.collect(),
-		// 	pot: 0,
-		// 	max_members: 999,
-		// },
-		// vesting: Default::default(),
-		// gilt: Default::default(),
-		// transaction_storage: Default::default(),
 	}
 }
 

@@ -21,7 +21,7 @@
 use crate::keyring::*;
 use node_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AccountId, BabeConfig, BalancesConfig,
-	GenesisConfig, GrandpaConfig, IndicesConfig, SessionConfig, StakerStatus,
+	GenesisConfig, GrandpaConfig, SessionConfig, StakerStatus,
 	StakingConfig, SystemConfig, BABE_GENESIS_EPOCH_CONFIG,
 };
 use sp_core::ChangesTrieConfiguration;
@@ -60,7 +60,7 @@ pub fn config_endowed(
 			},
 			code: code.map(|x| x.to_vec()).unwrap_or_else(|| wasm_binary_unwrap().to_vec()),
 		},
-		indices: IndicesConfig { indices: vec![] },
+		// indices: IndicesConfig { indices: vec![] },
 		balances: BalancesConfig { balances: endowed },
 		session: SessionConfig {
 			keys: vec![
@@ -87,7 +87,7 @@ pub fn config_endowed(
 		},
 		babe: BabeConfig { authorities: vec![], epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG) },
 		grandpa: GrandpaConfig { authorities: vec![] },
-		// im_online: Default::default(),
+		im_online: Default::default(),
 		authority_discovery: Default::default(),
 		// democracy: Default::default(),
 		// council: Default::default(),
