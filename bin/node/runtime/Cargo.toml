@@ -53,7 +53,7 @@ pallet-authority-discovery = { version = "4.0.0-dev", default-features = false, 
 pallet-authorship = { version = "4.0.0-dev", default-features = false, path = "../../../frame/authorship" }
 pallet-babe = { version = "4.0.0-dev", default-features = false, path = "../../../frame/babe" }
 pallet-balances = { version = "4.0.0-dev", default-features = false, path = "../../../frame/balances" }
-pallet-election-provider-multi-phase = { version = "4.0.0-dev", default-features = false, path = "../../../frame/election-provider-multi-phase" }
+#pallet-election-provider-multi-phase = { version = "4.0.0-dev", default-features = false, path = "../../../frame/election-provider-multi-phase" }
 pallet-grandpa = { version = "4.0.0-dev", default-features = false, path = "../../../frame/grandpa" }
 #pallet-indices = { version = "4.0.0-dev", default-features = false, path = "../../../frame/indices" }
 #pallet-identity = { version = "4.0.0-dev", default-features = false, path = "../../../frame/identity" }
@@ -112,7 +112,7 @@ std = [
 	"pallet-balances/std",
 	"pallet-transaction-payment-rpc-runtime-api/std",
 	"pallet-transaction-payment/std",
-	"pallet-election-provider-multi-phase/std",
+#	"pallet-election-provider-multi-phase/std",
 	"pallet-staking/std",
 	"pallet-session/std",
 	"pallet-grandpa/std",

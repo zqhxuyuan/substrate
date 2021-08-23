@@ -4513,7 +4513,6 @@ dependencies = [
  "pallet-authorship",
  "pallet-babe",
  "pallet-balances",
- "pallet-election-provider-multi-phase",
  "pallet-grandpa",
  "pallet-im-online",
  "pallet-session",

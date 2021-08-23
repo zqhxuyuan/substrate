@@ -80,7 +80,7 @@ impl<T: Config> Pallet<T> {
 		// Validate input data
 		let current_era = CurrentEra::<T>::get().ok_or(
 			Error::<T>::InvalidEraToReward
-				.with_weight(T::WeightElectionProviderInfo::payout_stakers_alive_staked(0)),
+				.with_weight(T::WeightInfo::payout_stakers_alive_staked(0)),
 		)?;
 		let history_depth = Self::history_depth();
 		ensure!(
