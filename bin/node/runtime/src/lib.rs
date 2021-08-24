@@ -41,8 +41,6 @@ use frame_system::{
 };
 pub use node_primitives::{AccountId, Signature};
 use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment};
-// use pallet_contracts::weights::WeightInfo;
-// use pallet_election_provider_multi_phase::FallbackStrategy;
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
@@ -92,6 +90,9 @@ use impls::Author;
 pub mod constants;
 use constants::{currency::*, time::*};
 use sp_runtime::generic::Era;
+
+use frame_election_provider_support::onchain;
+use frame_support::sp_runtime::traits::AccountIdLookup;
 
 // Make the WASM binary available.
 #[cfg(feature = "std")]
@@ -361,9 +362,6 @@ parameter_types! {
 	pub OffchainRepeat: BlockNumber = 5;
 }
 
-use frame_election_provider_support::onchain;
-use frame_support::sp_runtime::traits::AccountIdLookup;
-
 impl onchain::Config for Runtime {
 	type AccountId = <Self as frame_system::Config>::AccountId;
 	type BlockNumber = <Self as frame_system::Config>::BlockNumber;
@@ -390,10 +388,6 @@ impl pallet_staking::Config for Runtime {
 	type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
 	type NextNewSession = Session;
 	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
-	// type ElectionProvider = ElectionProviderMultiPhase;
-	// type GenesisElectionProvider = onchain::OnChainSequentialPhragmen<
-	// 	pallet_election_provider_multi_phase::OnChainConfig<Self>,
-	// >;
 	type ElectionProvider = onchain::OnChainSequentialPhragmen<Self>;
 	type GenesisElectionProvider = Self::ElectionProvider;
 	// type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
@@ -514,7 +508,6 @@ construct_runtime!(
 		Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-		// ElectionProviderMultiPhase: pallet_election_provider_multi_phase::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
 		Staking: pallet_staking::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event, ValidateUnsigned},
