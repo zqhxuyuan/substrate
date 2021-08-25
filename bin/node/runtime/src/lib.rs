@@ -82,9 +82,8 @@ pub use pallet_staking::StakerStatus;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
-/// Implementations of some helper traits passed into runtime modules as associated types.
-pub mod impls;
-use impls::Author;
+// pub mod impls;
+// use impls::Author;
 
 /// Constant values used within the runtime.
 pub mod constants;
@@ -146,7 +145,7 @@ impl OnUnbalanced<NegativeImbalance> for DealWithFees {
 				tips.ration_merge_into(80, 20, &mut split);
 			}
 			// Treasury::on_unbalanced(split.0);
-			Author::on_unbalanced(split.1);
+			// Author::on_unbalanced(split.1);
 		}
 	}
 }
@@ -249,8 +248,9 @@ impl pallet_babe::Config for Runtime {
 		pallet_babe::AuthorityId,
 	)>>::IdentificationTuple;
 
-	type HandleEquivocation =
-		pallet_babe::EquivocationHandler<Self::KeyOwnerIdentification, (), ReportLongevity>;
+	// type HandleEquivocation =
+	// 	pallet_babe::EquivocationHandler<Self::KeyOwnerIdentification, (), ReportLongevity>;
+	type HandleEquivocation = ();
 
 	type WeightInfo = ();
 }
@@ -305,14 +305,14 @@ parameter_types! {
 	pub const UncleGenerations: BlockNumber = 5;
 }
 
-impl pallet_authorship::Config for Runtime {
-	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-	type UncleGenerations = UncleGenerations;
-	type FilterUncle = ();
-	// type EventHandler = (Staking, ImOnline);
-	// type EventHandler = (ImOnline);
-	type EventHandler = ();
-}
+// impl pallet_authorship::Config for Runtime {
+// 	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
+// 	type UncleGenerations = UncleGenerations;
+// 	type FilterUncle = ();
+// 	// type EventHandler = (Staking, ImOnline);
+// 	// type EventHandler = (ImOnline);
+// 	type EventHandler = ();
+// }
 
 impl_opaque_keys! {
 	pub struct SessionKeys {
@@ -496,11 +496,13 @@ impl pallet_grandpa::Config for Runtime {
 		GrandpaId,
 	)>>::IdentificationTuple;
 
-	type HandleEquivocation = pallet_grandpa::EquivocationHandler<
-		Self::KeyOwnerIdentification,
-		(),
-		ReportLongevity,
-	>;
+	// type HandleEquivocation = pallet_grandpa::EquivocationHandler<
+	// 	Self::KeyOwnerIdentification,
+	// 	(),
+	// 	ReportLongevity,
+	// >;
+
+	type HandleEquivocation = ();
 
 	type WeightInfo = ();
 }
@@ -515,7 +517,7 @@ construct_runtime!(
 		Utility: pallet_utility::{Pallet, Call, Event},
 		Babe: pallet_babe::{Pallet, Call, Storage, Config, ValidateUnsigned},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-		Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
+		// Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		// Staking: pallet_staking::{Pallet, Call, Config<T>, Storage, Event<T>},
