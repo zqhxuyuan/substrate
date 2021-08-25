@@ -44,8 +44,8 @@ use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
-use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
-use pallet_session::historical as pallet_session_historical;
+// use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
+// use pallet_session::historical as pallet_session_historical;
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
@@ -226,8 +226,8 @@ parameter_types! {
 	//       Attempting to do so will brick block production.
 	pub const EpochDuration: u64 = EPOCH_DURATION_IN_SLOTS;
 	pub const ExpectedBlockTime: Moment = MILLISECS_PER_BLOCK;
-	pub const ReportLongevity: u64 =
-		BondingDuration::get() as u64 * SessionsPerEra::get() as u64 * EpochDuration::get();
+	pub const ReportLongevity: u64 = 100;
+		// BondingDuration::get() as u64 * SessionsPerEra::get() as u64 * EpochDuration::get();
 }
 
 impl pallet_babe::Config for Runtime {
@@ -236,7 +236,8 @@ impl pallet_babe::Config for Runtime {
 	type EpochChangeTrigger = pallet_babe::ExternalTrigger;
 	type DisabledValidators = Session;
 
-	type KeyOwnerProofSystem = Historical;
+	// type KeyOwnerProofSystem = Historical;
+	type KeyOwnerProofSystem = ();
 
 	type KeyOwnerProof = <Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(
 		KeyTypeId,
@@ -309,7 +310,8 @@ impl pallet_authorship::Config for Runtime {
 	type UncleGenerations = UncleGenerations;
 	type FilterUncle = ();
 	// type EventHandler = (Staking, ImOnline);
-	type EventHandler = (ImOnline);
+	// type EventHandler = (ImOnline);
+	type EventHandler = ();
 }
 
 impl_opaque_keys! {
@@ -340,66 +342,66 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }
 
-impl pallet_session::historical::Config for Runtime {
-	type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
-	type FullIdentificationOf = pallet_staking::ExposureOf<Runtime>;
-}
+// impl pallet_session::historical::Config for Runtime {
+// 	type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
+// 	type FullIdentificationOf = pallet_staking::ExposureOf<Runtime>;
+// }
 // impl pallet_session::historical::Config for Runtime {
 // 	type FullIdentification = u64;
 // 	type FullIdentificationOf = ConvertInto;
 // }
 
-pallet_staking_reward_curve::build! {
-	const REWARD_CURVE: PiecewiseLinear<'static> = curve!(
-		min_inflation: 0_025_000,
-		max_inflation: 0_100_000,
-		ideal_stake: 0_500_000,
-		falloff: 0_050_000,
-		max_piece_count: 40,
-		test_precision: 0_005_000,
-	);
-}
-
-parameter_types! {
-	pub const SessionsPerEra: sp_staking::SessionIndex = 6;
-	pub const BondingDuration: pallet_staking::EraIndex = 24 * 28;
-	pub const SlashDeferDuration: pallet_staking::EraIndex = 24 * 7; // 1/4 the bonding duration.
-	pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
-	pub const MaxNominatorRewardedPerValidator: u32 = 256;
-	pub OffchainRepeat: BlockNumber = 5;
-}
-
-impl onchain::Config for Runtime {
-	type AccountId = <Self as frame_system::Config>::AccountId;
-	type BlockNumber = <Self as frame_system::Config>::BlockNumber;
-	type Accuracy = Perbill;
-	type DataProvider = Staking;
-}
-pub const MAX_NOMINATIONS: u32 = 10;
-
-impl pallet_staking::Config for Runtime {
-	const MAX_NOMINATIONS: u32 = MAX_NOMINATIONS;
-	type Currency = Balances;
-	type UnixTime = Timestamp;
-	type CurrencyToVote = U128CurrencyToVote;
-	type RewardRemainder = ();
-	type Event = Event;
-	type Slash = (); // send the slashed funds to the treasury.
-	type Reward = (); // rewards are minted from the void
-	type SessionsPerEra = SessionsPerEra;
-	type BondingDuration = BondingDuration;
-	type SlashDeferDuration = SlashDeferDuration;
-	/// A super-majority of the council can cancel the slash.
-	type SlashCancelOrigin = EnsureRoot<AccountId>;
-	type SessionInterface = Self;
-	type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
-	type NextNewSession = Session;
-	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
-	type ElectionProvider = onchain::OnChainSequentialPhragmen<Self>;
-	type GenesisElectionProvider = Self::ElectionProvider;
-	// type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
-	type WeightInfo = ();
-}
+// pallet_staking_reward_curve::build! {
+// 	const REWARD_CURVE: PiecewiseLinear<'static> = curve!(
+// 		min_inflation: 0_025_000,
+// 		max_inflation: 0_100_000,
+// 		ideal_stake: 0_500_000,
+// 		falloff: 0_050_000,
+// 		max_piece_count: 40,
+// 		test_precision: 0_005_000,
+// 	);
+// }
+//
+// parameter_types! {
+// 	pub const SessionsPerEra: sp_staking::SessionIndex = 6;
+// 	pub const BondingDuration: pallet_staking::EraIndex = 24 * 28;
+// 	pub const SlashDeferDuration: pallet_staking::EraIndex = 24 * 7; // 1/4 the bonding duration.
+// 	pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
+// 	pub const MaxNominatorRewardedPerValidator: u32 = 256;
+// 	pub OffchainRepeat: BlockNumber = 5;
+// }
+//
+// impl onchain::Config for Runtime {
+// 	type AccountId = <Self as frame_system::Config>::AccountId;
+// 	type BlockNumber = <Self as frame_system::Config>::BlockNumber;
+// 	type Accuracy = Perbill;
+// 	type DataProvider = Staking;
+// }
+// pub const MAX_NOMINATIONS: u32 = 10;
+//
+// impl pallet_staking::Config for Runtime {
+// 	const MAX_NOMINATIONS: u32 = MAX_NOMINATIONS;
+// 	type Currency = Balances;
+// 	type UnixTime = Timestamp;
+// 	type CurrencyToVote = U128CurrencyToVote;
+// 	type RewardRemainder = ();
+// 	type Event = Event;
+// 	type Slash = (); // send the slashed funds to the treasury.
+// 	type Reward = (); // rewards are minted from the void
+// 	type SessionsPerEra = SessionsPerEra;
+// 	type BondingDuration = BondingDuration;
+// 	type SlashDeferDuration = SlashDeferDuration;
+// 	/// A super-majority of the council can cancel the slash.
+// 	type SlashCancelOrigin = EnsureRoot<AccountId>;
+// 	type SessionInterface = Self;
+// 	type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
+// 	type NextNewSession = Session;
+// 	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
+// 	type ElectionProvider = onchain::OnChainSequentialPhragmen<Self>;
+// 	type GenesisElectionProvider = Self::ElectionProvider;
+// 	// type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
+// 	type WeightInfo = ();
+// }
 
 impl pallet_sudo::Config for Runtime {
 	type Event = Event;
@@ -467,15 +469,15 @@ where
 	type OverarchingCall = Call;
 }
 
-impl pallet_im_online::Config for Runtime {
-	type AuthorityId = ImOnlineId;
-	type Event = Event;
-	type NextSessionRotation = Babe;
-	type ValidatorSet = Historical;
-	type ReportUnresponsiveness = ();
-	type UnsignedPriority = ImOnlineUnsignedPriority;
-	type WeightInfo = pallet_im_online::weights::SubstrateWeight<Runtime>;
-}
+// impl pallet_im_online::Config for Runtime {
+// 	type AuthorityId = ImOnlineId;
+// 	type Event = Event;
+// 	type NextSessionRotation = Babe;
+// 	type ValidatorSet = Historical;
+// 	type ReportUnresponsiveness = ();
+// 	type UnsignedPriority = ImOnlineUnsignedPriority;
+// 	type WeightInfo = pallet_im_online::weights::SubstrateWeight<Runtime>;
+// }
 
 impl pallet_authority_discovery::Config for Runtime {}
 
@@ -483,7 +485,8 @@ impl pallet_grandpa::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
 
-	type KeyOwnerProofSystem = Historical;
+	// type KeyOwnerProofSystem = Historical;
+	type KeyOwnerProofSystem = ();
 
 	type KeyOwnerProof =
 		<Self::KeyOwnerProofSystem as KeyOwnerProofSystem<(KeyTypeId, GrandpaId)>>::Proof;
@@ -515,13 +518,13 @@ construct_runtime!(
 		Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-		Staking: pallet_staking::{Pallet, Call, Config<T>, Storage, Event<T>},
+		// Staking: pallet_staking::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event, ValidateUnsigned},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config},
-		Historical: pallet_session_historical::{Pallet},
-		ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>},
+		// Historical: pallet_session_historical::{Pallet},
+		// ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>},
 	}
 );
 
@@ -648,11 +651,12 @@ impl_runtime_apis! {
 			_set_id: fg_primitives::SetId,
 			authority_id: GrandpaId,
 		) -> Option<fg_primitives::OpaqueKeyOwnershipProof> {
-			use codec::Encode;
-
-			Historical::prove((fg_primitives::KEY_TYPE, authority_id))
-				.map(|p| p.encode())
-				.map(fg_primitives::OpaqueKeyOwnershipProof::new)
+			// use codec::Encode;
+			//
+			// Historical::prove((fg_primitives::KEY_TYPE, authority_id))
+			// 	.map(|p| p.encode())
+			// 	.map(fg_primitives::OpaqueKeyOwnershipProof::new)
+			None
 		}
 	}
 
@@ -689,11 +693,12 @@ impl_runtime_apis! {
 			_slot: sp_consensus_babe::Slot,
 			authority_id: sp_consensus_babe::AuthorityId,
 		) -> Option<sp_consensus_babe::OpaqueKeyOwnershipProof> {
-			use codec::Encode;
-
-			Historical::prove((sp_consensus_babe::KEY_TYPE, authority_id))
-				.map(|p| p.encode())
-				.map(sp_consensus_babe::OpaqueKeyOwnershipProof::new)
+			// use codec::Encode;
+			//
+			// Historical::prove((sp_consensus_babe::KEY_TYPE, authority_id))
+			// 	.map(|p| p.encode())
+			// 	.map(sp_consensus_babe::OpaqueKeyOwnershipProof::new)
+			None
 		}
 
 		fn submit_report_equivocation_unsigned_extrinsic(

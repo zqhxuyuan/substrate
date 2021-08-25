@@ -22,7 +22,7 @@ use crate::keyring::*;
 use node_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AccountId, BabeConfig, BalancesConfig,
 	GenesisConfig, GrandpaConfig, SessionConfig, StakerStatus,
-	StakingConfig, SystemConfig, BABE_GENESIS_EPOCH_CONFIG,
+	SystemConfig, BABE_GENESIS_EPOCH_CONFIG,
 };
 use sp_core::ChangesTrieConfiguration;
 use sp_keyring::{Ed25519Keyring, Sr25519Keyring};
@@ -73,21 +73,21 @@ pub fn config_endowed(
 				),
 			],
 		},
-		staking: StakingConfig {
-			stakers: vec![
-				(dave(), alice(), 111 * DOLLARS, StakerStatus::Validator),
-				(eve(), bob(), 100 * DOLLARS, StakerStatus::Validator),
-				(ferdie(), charlie(), 100 * DOLLARS, StakerStatus::Validator),
-			],
-			validator_count: 3,
-			minimum_validator_count: 0,
-			slash_reward_fraction: Perbill::from_percent(10),
-			invulnerables: vec![alice(), bob(), charlie()],
-			..Default::default()
-		},
+		// staking: StakingConfig {
+		// 	stakers: vec![
+		// 		(dave(), alice(), 111 * DOLLARS, StakerStatus::Validator),
+		// 		(eve(), bob(), 100 * DOLLARS, StakerStatus::Validator),
+		// 		(ferdie(), charlie(), 100 * DOLLARS, StakerStatus::Validator),
+		// 	],
+		// 	validator_count: 3,
+		// 	minimum_validator_count: 0,
+		// 	slash_reward_fraction: Perbill::from_percent(10),
+		// 	invulnerables: vec![alice(), bob(), charlie()],
+		// 	..Default::default()
+		// },
 		babe: BabeConfig { authorities: vec![], epoch_config: Some(BABE_GENESIS_EPOCH_CONFIG) },
 		grandpa: GrandpaConfig { authorities: vec![] },
-		im_online: Default::default(),
+		// im_online: Default::default(),
 		authority_discovery: Default::default(),
 		// democracy: Default::default(),
 		// council: Default::default(),

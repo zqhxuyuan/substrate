@@ -485,22 +485,24 @@ pub mod pallet {
 
 	/// The total units issued in the system.
 	#[pallet::storage]
-	#[pallet::getter(fn total_issuance)]
+	// #[pallet::getter(fn total_issuance)]
+	// #[pallet::sql("select value as total_issuance from vertic_dict where module='balances' and key='TotalIssuance'")]
 	pub type TotalIssuance<T: Config<I>, I: 'static = ()> = StorageValue<_, T::Balance, ValueQuery>;
 
-	/// The balance of an account.
-	///
-	/// NOTE: This is only used in the case that this pallet is used to store balances.
-	#[pallet::storage]
-	pub type Account<T: Config<I>, I: 'static = ()> = StorageMap<
-		_,
-		Blake2_128Concat,
-		T::AccountId,
-		AccountData<T::Balance>,
-		ValueQuery,
-		GetDefault,
-		ConstU32<300_000>,
-	>;
+	// /// The balance of an account.
+	// ///
+	// /// NOTE: This is only used in the case that this pallet is used to store balances.
+	// #[pallet::storage]
+	// // #[pallet::sql("select account_id, account_data from vertic_balances limit 300000")]
+	// pub type Account<T: Config<I>, I: 'static = ()> = StorageMap<
+	// 	_,
+	// 	Blake2_128Concat,
+	// 	T::AccountId,
+	// 	AccountData<T::Balance>,
+	// 	ValueQuery,
+	// 	GetDefault,
+	// 	ConstU32<300_000>,
+	// >;
 
 	/// Any liquidity locks on some account balances.
 	/// NOTE: Should only be accessed when setting, changing and freeing a lock.
@@ -516,16 +518,16 @@ pub mod pallet {
 		ConstU32<300_000>,
 	>;
 
-	/// Named reserves on some account balances.
-	#[pallet::storage]
-	#[pallet::getter(fn reserves)]
-	pub type Reserves<T: Config<I>, I: 'static = ()> = StorageMap<
-		_,
-		Blake2_128Concat,
-		T::AccountId,
-		BoundedVec<ReserveData<T::ReserveIdentifier, T::Balance>, T::MaxReserves>,
-		ValueQuery,
-	>;
+	// /// Named reserves on some account balances.
+	// #[pallet::storage]
+	// #[pallet::getter(fn reserves)]
+	// pub type Reserves<T: Config<I>, I: 'static = ()> = StorageMap<
+	// 	_,
+	// 	Blake2_128Concat,
+	// 	T::AccountId,
+	// 	BoundedVec<ReserveData<T::ReserveIdentifier, T::Balance>, T::MaxReserves>,
+	// 	ValueQuery,
+	// >;
 
 	/// Storage version of the pallet.
 	///

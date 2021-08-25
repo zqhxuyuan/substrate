@@ -22,9 +22,9 @@ use grandpa_primitives::AuthorityId as GrandpaId;
 use hex_literal::hex;
 use node_runtime::{
 	constants::currency::*, wasm_binary_unwrap, AuthorityDiscoveryConfig, BabeConfig,
-	BalancesConfig, Block, GrandpaConfig, ImOnlineConfig,
-	SessionConfig, SessionKeys, StakerStatus,
-	StakingConfig, SudoConfig, SystemConfig, MAX_NOMINATIONS,
+	BalancesConfig, Block, GrandpaConfig,
+	SessionConfig, SessionKeys,
+	SudoConfig, SystemConfig,
 };
 use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 use sc_chain_spec::ChainSpecExtension;
@@ -272,22 +272,22 @@ pub fn testnet_genesis(
 
 	// stakers: all validators and nominators.
 	let mut rng = rand::thread_rng();
-	let stakers = initial_authorities
-		.iter()
-		.map(|x| (x.0.clone(), x.1.clone(), STASH, StakerStatus::Validator))
-		.chain(initial_nominators.iter().map(|x| {
-			use rand::{seq::SliceRandom, Rng};
-			let limit = (MAX_NOMINATIONS as usize).min(initial_authorities.len());
-			let count = rng.gen::<usize>() % limit;
-			let nominations = initial_authorities
-				.as_slice()
-				.choose_multiple(&mut rng, count)
-				.into_iter()
-				.map(|choice| choice.0.clone())
-				.collect::<Vec<_>>();
-			(x.clone(), x.clone(), STASH, StakerStatus::Nominator(nominations))
-		}))
-		.collect::<Vec<_>>();
+	// let stakers = initial_authorities
+	// 	.iter()
+	// 	.map(|x| (x.0.clone(), x.1.clone(), STASH, StakerStatus::Validator))
+	// 	.chain(initial_nominators.iter().map(|x| {
+	// 		use rand::{seq::SliceRandom, Rng};
+	// 		let limit = (MAX_NOMINATIONS as usize).min(initial_authorities.len());
+	// 		let count = rng.gen::<usize>() % limit;
+	// 		let nominations = initial_authorities
+	// 			.as_slice()
+	// 			.choose_multiple(&mut rng, count)
+	// 			.into_iter()
+	// 			.map(|choice| choice.0.clone())
+	// 			.collect::<Vec<_>>();
+	// 		(x.clone(), x.clone(), STASH, StakerStatus::Nominator(nominations))
+	// 	}))
+	// 	.collect::<Vec<_>>();
 
 	let num_endowed_accounts = endowed_accounts.len();
 
@@ -315,20 +315,20 @@ pub fn testnet_genesis(
 				})
 				.collect::<Vec<_>>(),
 		},
-		staking: StakingConfig {
-			validator_count: initial_authorities.len() as u32,
-			minimum_validator_count: initial_authorities.len() as u32,
-			invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
-			slash_reward_fraction: Perbill::from_percent(10),
-			stakers,
-			..Default::default()
-		},
+		// staking: StakingConfig {
+		// 	validator_count: initial_authorities.len() as u32,
+		// 	minimum_validator_count: initial_authorities.len() as u32,
+		// 	invulnerables: initial_authorities.iter().map(|x| x.0.clone()).collect(),
+		// 	slash_reward_fraction: Perbill::from_percent(10),
+		// 	stakers,
+		// 	..Default::default()
+		// },
 		sudo: SudoConfig { key: root_key },
 		babe: BabeConfig {
 			authorities: vec![],
 			epoch_config: Some(node_runtime::BABE_GENESIS_EPOCH_CONFIG),
 		},
-		im_online: ImOnlineConfig { keys: vec![] },
+		// im_online: ImOnlineConfig { keys: vec![] },
 		authority_discovery: AuthorityDiscoveryConfig { keys: vec![] },
 		grandpa: GrandpaConfig { authorities: vec![] },
 	}
