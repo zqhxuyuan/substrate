@@ -316,6 +316,7 @@ impl pallet_sudo::Config for Runtime {
 parameter_types! {
 	pub const MaxPermission: u32 = 50;
 	pub const MaxAuth: u32 = 50;
+	pub const MaxOthers: u32 = 50;
 	pub const KeyLimit: u32 = 10;
 }
 
@@ -324,6 +325,7 @@ impl module_accounts::Config for Runtime {
 	type Call = Call;
 	type MaxPermission = MaxPermission;
 	type MaxAuth = MaxAuth;
+	type MaxOthers = MaxOthers;
 	// type VarNameType = [u8; 10];
 	type KeyLimit = KeyLimit;
 }
