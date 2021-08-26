@@ -1,23 +1,3 @@
-// This file is part of Substrate.
-
-// Copyright (C) 2018-2021 Parity Technologies (UK) Ltd.
-// SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-//! The Substrate runtime. This can be compiled with `#[no_std]`, ready for Wasm.
-
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
 #![recursion_limit = "256"]
@@ -44,8 +24,6 @@ use node_primitives::{AccountIndex, Balance, BlockNumber, Hash, Index, Moment};
 use pallet_grandpa::{
 	fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
-// use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
-// use pallet_session::historical as pallet_session_historical;
 pub use pallet_transaction_payment::{CurrencyAdapter, Multiplier, TargetedFeeAdjustment};
 use pallet_transaction_payment::{FeeDetails, RuntimeDispatchInfo};
 use sp_api::impl_runtime_apis;
@@ -82,10 +60,6 @@ pub use pallet_staking::StakerStatus;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 
-// pub mod impls;
-// use impls::Author;
-
-/// Constant values used within the runtime.
 pub mod constants;
 use constants::{currency::*, time::*};
 use sp_runtime::generic::Era;
@@ -233,7 +207,8 @@ impl pallet_babe::Config for Runtime {
 	type EpochDuration = EpochDuration;
 	type ExpectedBlockTime = ExpectedBlockTime;
 	type EpochChangeTrigger = pallet_babe::ExternalTrigger;
-	type DisabledValidators = Session;
+	// type DisabledValidators = Session;
+	type DisabledValidators = ();
 
 	// type KeyOwnerProofSystem = Historical;
 	type KeyOwnerProofSystem = ();
@@ -305,15 +280,6 @@ parameter_types! {
 	pub const UncleGenerations: BlockNumber = 5;
 }
 
-// impl pallet_authorship::Config for Runtime {
-// 	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Babe>;
-// 	type UncleGenerations = UncleGenerations;
-// 	type FilterUncle = ();
-// 	// type EventHandler = (Staking, ImOnline);
-// 	// type EventHandler = (ImOnline);
-// 	type EventHandler = ();
-// }
-
 impl_opaque_keys! {
 	pub struct SessionKeys {
 		pub grandpa: Grandpa,
@@ -342,70 +308,24 @@ impl pallet_session::Config for Runtime {
 	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
 }
 
-// impl pallet_session::historical::Config for Runtime {
-// 	type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
-// 	type FullIdentificationOf = pallet_staking::ExposureOf<Runtime>;
-// }
-// impl pallet_session::historical::Config for Runtime {
-// 	type FullIdentification = u64;
-// 	type FullIdentificationOf = ConvertInto;
-// }
-
-// pallet_staking_reward_curve::build! {
-// 	const REWARD_CURVE: PiecewiseLinear<'static> = curve!(
-// 		min_inflation: 0_025_000,
-// 		max_inflation: 0_100_000,
-// 		ideal_stake: 0_500_000,
-// 		falloff: 0_050_000,
-// 		max_piece_count: 40,
-// 		test_precision: 0_005_000,
-// 	);
-// }
-//
-// parameter_types! {
-// 	pub const SessionsPerEra: sp_staking::SessionIndex = 6;
-// 	pub const BondingDuration: pallet_staking::EraIndex = 24 * 28;
-// 	pub const SlashDeferDuration: pallet_staking::EraIndex = 24 * 7; // 1/4 the bonding duration.
-// 	pub const RewardCurve: &'static PiecewiseLinear<'static> = &REWARD_CURVE;
-// 	pub const MaxNominatorRewardedPerValidator: u32 = 256;
-// 	pub OffchainRepeat: BlockNumber = 5;
-// }
-//
-// impl onchain::Config for Runtime {
-// 	type AccountId = <Self as frame_system::Config>::AccountId;
-// 	type BlockNumber = <Self as frame_system::Config>::BlockNumber;
-// 	type Accuracy = Perbill;
-// 	type DataProvider = Staking;
-// }
-// pub const MAX_NOMINATIONS: u32 = 10;
-//
-// impl pallet_staking::Config for Runtime {
-// 	const MAX_NOMINATIONS: u32 = MAX_NOMINATIONS;
-// 	type Currency = Balances;
-// 	type UnixTime = Timestamp;
-// 	type CurrencyToVote = U128CurrencyToVote;
-// 	type RewardRemainder = ();
-// 	type Event = Event;
-// 	type Slash = (); // send the slashed funds to the treasury.
-// 	type Reward = (); // rewards are minted from the void
-// 	type SessionsPerEra = SessionsPerEra;
-// 	type BondingDuration = BondingDuration;
-// 	type SlashDeferDuration = SlashDeferDuration;
-// 	/// A super-majority of the council can cancel the slash.
-// 	type SlashCancelOrigin = EnsureRoot<AccountId>;
-// 	type SessionInterface = Self;
-// 	type EraPayout = pallet_staking::ConvertCurve<RewardCurve>;
-// 	type NextNewSession = Session;
-// 	type MaxNominatorRewardedPerValidator = MaxNominatorRewardedPerValidator;
-// 	type ElectionProvider = onchain::OnChainSequentialPhragmen<Self>;
-// 	type GenesisElectionProvider = Self::ElectionProvider;
-// 	// type WeightInfo = pallet_staking::weights::SubstrateWeight<Runtime>;
-// 	type WeightInfo = ();
-// }
-
 impl pallet_sudo::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
+}
+
+parameter_types! {
+	pub const MaxPermission: u32 = 50;
+	pub const MaxAuth: u32 = 50;
+	pub const KeyLimit: u32 = 10;
+}
+
+impl module_accounts::Config for Runtime {
+	type Event = Event;
+	type Call = Call;
+	type MaxPermission = MaxPermission;
+	type MaxAuth = MaxAuth;
+	// type VarNameType = [u8; 10];
+	type KeyLimit = KeyLimit;
 }
 
 parameter_types! {
@@ -414,53 +334,6 @@ parameter_types! {
 	pub const StakingUnsignedPriority: TransactionPriority = TransactionPriority::max_value() / 2;
 }
 
-// impl<LocalCall> frame_system::offchain::CreateSignedTransaction<LocalCall> for Runtime
-// where
-// 	Call: From<LocalCall>,
-// {
-// 	fn create_transaction<C: frame_system::offchain::AppCrypto<Self::Public, Self::Signature>>(
-// 		call: Call,
-// 		public: <Signature as traits::Verify>::Signer,
-// 		account: AccountId,
-// 		nonce: Index,
-// 	) -> Option<(Call, <UncheckedExtrinsic as traits::Extrinsic>::SignaturePayload)> {
-// 		let tip = 0;
-// 		// take the biggest period possible.
-// 		let period =
-// 			BlockHashCount::get().checked_next_power_of_two().map(|c| c / 2).unwrap_or(2) as u64;
-// 		let current_block = System::block_number()
-// 			.saturated_into::<u64>()
-// 			// The `System::block_number` is initialized with `n+1`,
-// 			// so the actual block number is `n`.
-// 			.saturating_sub(1);
-// 		let era = Era::mortal(period, current_block);
-// 		let extra = (
-// 			frame_system::CheckSpecVersion::<Runtime>::new(),
-// 			frame_system::CheckTxVersion::<Runtime>::new(),
-// 			frame_system::CheckGenesis::<Runtime>::new(),
-// 			frame_system::CheckEra::<Runtime>::from(era),
-// 			frame_system::CheckNonce::<Runtime>::from(nonce),
-// 			frame_system::CheckWeight::<Runtime>::new(),
-// 			pallet_transaction_payment::ChargeTransactionPayment::<Runtime>::from(tip),
-// 		);
-// 		let raw_payload = SignedPayload::new(call, extra)
-// 			.map_err(|e| {
-// 				log::warn!("Unable to create signed payload: {:?}", e);
-// 			})
-// 			.ok()?;
-// 		let signature = raw_payload.using_encoded(|payload| C::sign(payload, public))?;
-// 		// let address = Indices::unlookup(account);
-// 		let address = AccountIdLookup::unlookup(account);
-// 		let (call, extra, _) = raw_payload.deconstruct();
-// 		Some((call, (address, signature.into(), extra)))
-// 	}
-// }
-//
-// impl frame_system::offchain::SigningTypes for Runtime {
-// 	type Public = <Signature as traits::Verify>::Signer;
-// 	type Signature = Signature;
-// }
-//
 impl<C> frame_system::offchain::SendTransactionTypes<C> for Runtime
 where
 	Call: From<C>,
@@ -468,16 +341,6 @@ where
 	type Extrinsic = UncheckedExtrinsic;
 	type OverarchingCall = Call;
 }
-
-// impl pallet_im_online::Config for Runtime {
-// 	type AuthorityId = ImOnlineId;
-// 	type Event = Event;
-// 	type NextSessionRotation = Babe;
-// 	type ValidatorSet = Historical;
-// 	type ReportUnresponsiveness = ();
-// 	type UnsignedPriority = ImOnlineUnsignedPriority;
-// 	type WeightInfo = pallet_im_online::weights::SubstrateWeight<Runtime>;
-// }
 
 impl pallet_authority_discovery::Config for Runtime {}
 
@@ -517,16 +380,13 @@ construct_runtime!(
 		Utility: pallet_utility::{Pallet, Call, Event},
 		Babe: pallet_babe::{Pallet, Call, Storage, Config, ValidateUnsigned},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-		// Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
-		// Staking: pallet_staking::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event, ValidateUnsigned},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		AuthorityDiscovery: pallet_authority_discovery::{Pallet, Config},
-		// Historical: pallet_session_historical::{Pallet},
-		// ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>},
+		Accounts: module_accounts::{Pallet, Call, Storage, Event<T>},
 	}
 );
 

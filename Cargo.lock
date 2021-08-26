@@ -4108,6 +4108,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "module-accounts"
+version = "4.0.0-dev"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "log 0.4.14",
+ "parity-scale-codec",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+ "sp-std",
+]
+
+[[package]]
 name = "more-asserts"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4508,6 +4522,7 @@ dependencies = [
  "frame-try-runtime",
  "hex-literal",
  "log 0.4.14",
+ "module-accounts",
  "node-primitives",
  "pallet-authority-discovery",
  "pallet-authorship",
@@ -5082,6 +5097,8 @@ dependencies = [
  "log 0.4.14",
  "pallet-timestamp",
  "parity-scale-codec",
+ "parity-util-mem",
+ "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",

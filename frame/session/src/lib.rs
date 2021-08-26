@@ -403,6 +403,8 @@ pub trait Config: frame_system::Config {
 
 decl_storage! {
 	trait Store for Module<T: Config> as Session {
+		// Session get(fn session_model): SessionModel<T::ValidatorId, T::Keys>;
+
 		/// The current set of validators.
 		Validators get(fn validators): Vec<T::ValidatorId>;
 
