@@ -106,6 +106,15 @@ pub mod pallet {
 		}
 	}
 
+	#[pallet::storage]
+	pub(super) type PermissionMap<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		BoundedVec<(PermType, PermissionAndOwnerData<T::MaxPermission, T::MaxAuth>), T::MaxOthers>,
+		OptionQuery,
+	>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	#[pallet::metadata(T::AccountId = "AccountId")]
@@ -124,15 +133,6 @@ pub mod pallet {
 		/// Sender must be the Sudo account
 		RequireSudo,
 	}
-
-	#[pallet::storage]
-	pub(super) type PermissionMap<T: Config> = StorageMap<
-		_,
-		Twox64Concat,
-		T::AccountId,
-		BoundedVec<(PermType, PermissionAndOwnerData<T::MaxPermission, T::MaxAuth>), T::MaxOthers>,
-		OptionQuery,
-	>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {

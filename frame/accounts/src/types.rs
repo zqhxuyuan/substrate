@@ -5,6 +5,28 @@ use sp_std::prelude::*;
 
 use frame_support::{traits::{Get, UnfilteredDispatchable}, weights::GetDispatchInfo, BoundedVec, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, WeakBoundedVec};
 
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, MaxEncodedLen)]
+pub enum CoinType {
+    BTC,
+    ETH,
+    VTC
+}
+
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, MaxEncodedLen)]
+pub enum AddressType {
+    BTC([u8; 35]),
+    ETH([u8; 20]),
+    VTC([u8; 32])
+}
+
+#[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, MaxEncodedLen)]
+pub struct Account {
+    pub coin_type: CoinType,
+    pub raw_name: [u8; 32],
+    pub address: AddressType,
+    pub parent_account: [u8; 32],
+}
+
 #[derive(Encode, Decode, Clone, Copy, PartialEq, Eq, RuntimeDebug, MaxEncodedLen, Ord, PartialOrd)]
 pub enum PermType {
     Owner,
