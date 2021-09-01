@@ -4639,6 +4639,7 @@ dependencies = [
  "fs_extra",
  "futures 0.3.16",
  "log 0.4.14",
+ "module-accounts",
  "node-executor",
  "node-primitives",
  "node-runtime",
@@ -9434,6 +9435,7 @@ version = "0.1.0"
 dependencies = [
  "frame-benchmarking",
  "frame-system",
+ "module-accounts",
  "node-cli",
  "node-primitives",
  "node-runtime",

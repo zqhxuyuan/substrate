@@ -78,6 +78,7 @@ impl ChainInfo for NodeTemplateChainInfo {
 			),
 			frame_system::CheckWeight::<Self::Runtime>::new(),
 			pallet_transaction_payment::ChargeTransactionPayment::<Self::Runtime>::from(0),
+			module_accounts::AccountExtension::new(),
 		)
 	}
 }

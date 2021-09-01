@@ -15,7 +15,9 @@ use frame_support::{traits::{Get, UnfilteredDispatchable},
 
 mod types;
 mod impls;
+mod extension;
 pub use types::*;
+pub use extension::AccountExtension;
 
 pub use pallet::*;
 
@@ -34,7 +36,7 @@ pub mod pallet {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 
 		/// A sudo-able call.
-		type Call: Parameter + UnfilteredDispatchable<Origin = Self::Origin> + GetDispatchInfo;
+		// type Call: Parameter + UnfilteredDispatchable<Origin = Self::Origin> + GetDispatchInfo;
 
 		#[pallet::constant]
 		type MaxPermission: Get<u32>;

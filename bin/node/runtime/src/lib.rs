@@ -322,7 +322,7 @@ parameter_types! {
 
 impl module_accounts::Config for Runtime {
 	type Event = Event;
-	type Call = Call;
+	// type Call = Call;
 	type MaxPermission = MaxPermission;
 	type MaxAuth = MaxAuth;
 	type MaxOthers = MaxOthers;
@@ -415,6 +415,7 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+	module_accounts::AccountExtension<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;

@@ -26,3 +26,4 @@ sc-consensus = { path = "../../../client/consensus/common" }
 
 sp-runtime = { path = "../../../primitives/runtime" }
 sp-keyring = { path = "../../../primitives/keyring" }
+module-accounts = { version = "4.0.0-dev", default-features = false, path = "../../../frame/accounts" }
