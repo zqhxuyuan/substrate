@@ -32,7 +32,7 @@ use sc_service::ChainType;
 use sc_telemetry::TelemetryEndpoints;
 use serde::{Deserialize, Serialize};
 use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
-use sp_consensus_babe::AuthorityId as BabeId;
+use sp_consensus_babe::{AuthorityId as BabeId, BabeAuthorityWeight};
 use sp_core::{crypto::UncheckedInto, sr25519, Pair, Public};
 use sp_runtime::{
 	traits::{IdentifyAccount, Verify},
@@ -270,6 +270,15 @@ pub fn testnet_genesis(
 			}
 		});
 
+	let babe_vec = initial_authorities.iter().map(|x| x.3.clone()).collect::<Vec<_>>();
+	let weight_vec: Vec<BabeAuthorityWeight> = vec![1,2,4,8];
+	let zip_vec = babe_vec.iter().zip(weight_vec.iter());
+	let mut babe_weight = vec![];
+	for (x, y) in zip_vec {
+		babe_weight.push((x.clone(), *y));
+	}
+	log::info!("babe weight: {:?}", babe_weight);
+
 	// stakers: all validators and nominators.
 	let mut rng = rand::thread_rng();
 	// let stakers = initial_authorities
@@ -360,7 +369,12 @@ pub fn development_config() -> ChainSpec {
 
 fn local_testnet_genesis() -> GenesisConfig {
 	testnet_genesis(
-		vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
+		vec![
+			authority_keys_from_seed("Alice"),
+			authority_keys_from_seed("Bob"),
+			authority_keys_from_seed("Charlie"),
+			authority_keys_from_seed("Dave"),
+		],
 		vec![],
 		get_account_id_from_seed::<sr25519::Public>("Alice"),
 		None,

@@ -46,7 +46,7 @@ impl<T: Config + Send + Sync> SignedExtension for AccountExtension<T> {
         _info: &DispatchInfoOf<Self::Call>,
         _len: usize,
     ) -> TransactionValidity {
-        // return InvalidTransaction::Stale.into();
+        // return InvalidTransaction::Custom(1).into();
         Ok(ValidTransaction {
             ..Default::default()
         })

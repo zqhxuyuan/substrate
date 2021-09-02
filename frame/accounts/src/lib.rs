@@ -117,6 +117,17 @@ pub mod pallet {
 		OptionQuery,
 	>;
 
+	// public key to account name maps
+	// a public key can exist in many account
+	#[pallet::storage]
+	pub(super) type Key2AccountMap<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		BoundedVec<[u8; 5], T::MaxOthers>,
+		OptionQuery,
+	>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	#[pallet::metadata(T::AccountId = "AccountId")]
