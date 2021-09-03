@@ -41,12 +41,7 @@ pub use sp_application_crypto as app_crypto;
 #[cfg(feature = "std")]
 pub use sp_core::storage::{Storage, StorageChild};
 
-use sp_core::{
-	crypto::{self, Public},
-	ecdsa, ed25519,
-	hash::{H256, H512},
-	sr25519,
-};
+use sp_core::{crypto::{self, Public}, ecdsa, ed25519, hash::{H256, H512}, sr25519, H160};
 use sp_std::{convert::TryFrom, prelude::*};
 
 use codec::{Decode, Encode};
@@ -61,6 +56,8 @@ mod runtime_string;
 pub mod testing;
 pub mod traits;
 pub mod transaction_validity;
+mod signature;
+mod signer;
 
 pub use crate::runtime_string::*;
 
@@ -92,6 +89,7 @@ pub use sp_arithmetic::{
 };
 
 pub use either::Either;
+use sha3::{Keccak256, Digest as ShaDigest};
 
 /// An abstraction over justification for a block's validity under a consensus algorithm.
 ///
@@ -228,11 +226,58 @@ pub enum MultiSignature {
 	Sr25519(sr25519::Signature),
 	/// An ECDSA/SECP256k1 signature.
 	Ecdsa(ecdsa::Signature),
+	// EthereumSignature(ecdsa::Signature)
+}
+
+/// Public key for any known crypto algorithm.
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Encode, Decode, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub enum MultiSigner {
+	/// An Ed25519 identity.
+	Ed25519(ed25519::Public),
+	/// An Sr25519 identity.
+	Sr25519(sr25519::Public),
+	/// An SECP256k1/ECDSA identity (actually, the Blake2 hash of the compressed pub key).
+	Ecdsa(ecdsa::Public),
+	// EthereumSigner([u8; 20])
+}
+
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+#[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug)]
+pub struct ComposeSignature {
+	pub multi_sig: Option<MultiSignature>,
+	pub eth_sig: Option<EthereumSignature>
+}
+
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Encode, Decode, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct ComposeSigner {
+	multi_sign: Option<MultiSigner>,
+	eth_sign: Option<EthereumSigner>,
+}
+
+impl From<ed25519::Signature> for ComposeSignature {
+	fn from(x: ed25519::Signature) -> Self {
+		Self {
+			multi_sig: Some(MultiSignature::Ed25519(x)),
+			eth_sig: None
+		}
+	}
 }
 
 impl From<ed25519::Signature> for MultiSignature {
 	fn from(x: ed25519::Signature) -> Self {
 		Self::Ed25519(x)
+	}
+}
+impl From<sr25519::Signature> for MultiSignature {
+	fn from(x: sr25519::Signature) -> Self {
+		Self::Sr25519(x)
+	}
+}
+impl From<ecdsa::Signature> for MultiSignature {
+	fn from(x: ecdsa::Signature) -> Self {
+		Self::Ecdsa(x)
 	}
 }
 
@@ -247,12 +292,6 @@ impl TryFrom<MultiSignature> for ed25519::Signature {
 	}
 }
 
-impl From<sr25519::Signature> for MultiSignature {
-	fn from(x: sr25519::Signature) -> Self {
-		Self::Sr25519(x)
-	}
-}
-
 impl TryFrom<MultiSignature> for sr25519::Signature {
 	type Error = ();
 	fn try_from(m: MultiSignature) -> Result<Self, Self::Error> {
@@ -261,12 +300,6 @@ impl TryFrom<MultiSignature> for sr25519::Signature {
 		} else {
 			Err(())
 		}
-	}
-}
-
-impl From<ecdsa::Signature> for MultiSignature {
-	fn from(x: ecdsa::Signature) -> Self {
-		Self::Ecdsa(x)
 	}
 }
 
@@ -285,18 +318,6 @@ impl Default for MultiSignature {
 	fn default() -> Self {
 		Self::Ed25519(Default::default())
 	}
-}
-
-/// Public key for any known crypto algorithm.
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Encode, Decode, RuntimeDebug)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub enum MultiSigner {
-	/// An Ed25519 identity.
-	Ed25519(ed25519::Public),
-	/// An Sr25519 identity.
-	Sr25519(sr25519::Public),
-	/// An SECP256k1/ECDSA identity (actually, the Blake2 hash of the compressed pub key).
-	Ecdsa(ecdsa::Public),
 }
 
 impl Default for MultiSigner {
@@ -319,6 +340,7 @@ impl AsRef<[u8]> for MultiSigner {
 			Self::Ed25519(ref who) => who.as_ref(),
 			Self::Sr25519(ref who) => who.as_ref(),
 			Self::Ecdsa(ref who) => who.as_ref(),
+			// Self::EthereumSigner(ref who) => who.as_ref(),
 		}
 	}
 }
@@ -330,6 +352,7 @@ impl traits::IdentifyAccount for MultiSigner {
 			Self::Ed25519(who) => <[u8; 32]>::from(who).into(),
 			Self::Sr25519(who) => <[u8; 32]>::from(who).into(),
 			Self::Ecdsa(who) => sp_io::hashing::blake2_256(who.as_ref()).into(),
+			// Self::EthereumSigner(who) => <[u8; 20]>::from(who).into(),
 		}
 	}
 }
@@ -392,6 +415,7 @@ impl std::fmt::Display for MultiSigner {
 			Self::Ed25519(ref who) => write!(fmt, "ed25519: {}", who),
 			Self::Sr25519(ref who) => write!(fmt, "sr25519: {}", who),
 			Self::Ecdsa(ref who) => write!(fmt, "ecdsa: {}", who),
+			// Self::EthereumSigner(ref who) => write!(fmt, "ecdsa"),
 		}
 	}
 }
@@ -399,6 +423,7 @@ impl std::fmt::Display for MultiSigner {
 impl Verify for MultiSignature {
 	type Signer = MultiSigner;
 	fn verify<L: Lazy<[u8]>>(&self, mut msg: L, signer: &AccountId32) -> bool {
+	// fn verify<L: Lazy<[u8]>>(&self, mut msg: L, signer: &<Self::Signer as IdentifyAccount>::AccountId) -> bool {
 		match (self, signer) {
 			(Self::Ed25519(ref sig), who) =>
 				sig.verify(msg, &ed25519::Public::from_slice(who.as_ref())),
@@ -414,6 +439,74 @@ impl Verify for MultiSignature {
 				}
 			},
 		}
+	}
+}
+
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Eq, PartialEq, Clone, Encode, Decode, sp_core::RuntimeDebug)]
+pub struct EthereumSignature(ecdsa::Signature);
+
+/// Public key for an Ethereum / H160 compatible account
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Encode, Decode, sp_core::RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+pub struct EthereumSigner([u8; 20]);
+
+impl Verify for EthereumSignature {
+	type Signer = EthereumSigner;
+	fn verify<L: Lazy<[u8]>>(&self, mut msg: L, signer: &H160) -> bool {
+		let mut m = [0u8; 32];
+		m.copy_from_slice(Keccak256::digest(msg.get()).as_slice());
+		match sp_io::crypto::secp256k1_ecdsa_recover(self.0.as_ref(), &m) {
+			Ok(pubkey) => {
+				H160::from(H256::from_slice(Keccak256::digest(&pubkey).as_slice())) == *signer
+			}
+			Err(sp_io::EcdsaVerifyError::BadRS) | Err(sp_io::EcdsaVerifyError::BadV) | Err(sp_io::EcdsaVerifyError::BadSignature) => {
+				log::error!(target: "evm", "Error recovering");
+				false
+			}
+		}
+	}
+}
+
+impl IdentifyAccount for EthereumSigner {
+	type AccountId = H160;
+	fn into_account(self) -> H160 {
+		self.0.into()
+	}
+}
+
+impl From<[u8; 20]> for EthereumSigner {
+	fn from(x: [u8; 20]) -> Self {
+		EthereumSigner(x)
+	}
+}
+
+impl From<ecdsa::Public> for EthereumSigner {
+	fn from(x: ecdsa::Public) -> Self {
+		let decompressed =
+			secp256k1::PublicKey::parse_slice(&x.0, Some(secp256k1::PublicKeyFormat::Compressed))
+				.expect("Wrong compressed public key provided")
+				.serialize();
+		let mut m = [0u8; 64];
+		m.copy_from_slice(&decompressed[1..65]);
+		let account = H160::from(H256::from_slice(Keccak256::digest(&m).as_slice()));
+		EthereumSigner(account.into())
+	}
+}
+
+impl From<secp256k1::PublicKey> for EthereumSigner {
+	fn from(x: secp256k1::PublicKey) -> Self {
+		let mut m = [0u8; 64];
+		m.copy_from_slice(&x.serialize()[1..65]);
+		let account = H160::from(H256::from_slice(Keccak256::digest(&m).as_slice()));
+		EthereumSigner(account.into())
+	}
+}
+
+#[cfg(feature = "std")]
+impl std::fmt::Display for EthereumSigner {
+	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(fmt, "ethereum signature: {:?}", H160::from_slice(&self.0))
 	}
 }
 
