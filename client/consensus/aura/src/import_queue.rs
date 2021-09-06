@@ -18,7 +18,7 @@
 
 //! Module implementing the logic for verifying and importing AuRa blocks.
 
-use crate::{aura_err, authorities, find_pre_digest, slot_author, AuthorityId, Error};
+use crate::{aura_err, authorities, find_pre_digest, slot_author, AuthorityId, Error, weights};
 use codec::{Codec, Decode, Encode};
 use log::{debug, info, trace};
 use prometheus_endpoint::Registry;
@@ -48,6 +48,7 @@ use sp_runtime::{
 	traits::{Block as BlockT, DigestItemFor, Header},
 };
 use std::{fmt::Debug, hash::Hash, marker::PhantomData, sync::Arc};
+use sp_core::crypto::AccountId32;
 
 /// check a header has been signed by the right key. If the slot is too far in the future, an error
 /// will be returned. If it's successful, returns the pre-header and the digest item
@@ -60,6 +61,7 @@ fn check_header<C, B: BlockT, P: Pair>(
 	mut header: B::Header,
 	hash: B::Hash,
 	authorities: &[AuthorityId<P>],
+	weights: Option<Vec<u64>>,
 	check_for_equivocation: CheckForEquivocation,
 ) -> Result<CheckedHeader<B::Header, (Slot, DigestItemFor<B>)>, Error<B>>
 where
@@ -69,6 +71,7 @@ where
 	P::Public: Encode + Decode + PartialEq + Clone,
 {
 	let seal = header.digest_mut().pop().ok_or_else(|| Error::HeaderUnsealed(hash))?;
+
 
 	let sig = seal.as_aura_seal().ok_or_else(|| aura_err(Error::HeaderBadSeal(hash)))?;
 
@@ -81,7 +84,7 @@ where
 		// check the signature is valid under the expected authority and
 		// chain state.
 		let expected_author =
-			slot_author::<P>(slot, &authorities).ok_or_else(|| Error::SlotAuthorNotFound)?;
+			slot_author::<P>(weights, slot, &authorities).ok_or_else(|| Error::SlotAuthorNotFound)?;
 
 		let pre_hash = header.hash();
 
@@ -195,7 +198,7 @@ where
 		+ sc_client_api::backend::AuxStore
 		+ ProvideCache<B>
 		+ BlockOf,
-	C::Api: BlockBuilderApi<B> + AuraApi<B, AuthorityId<P>> + ApiExt<B>,
+	C::Api: BlockBuilderApi<B> + AuraApi<B, AuthorityId<P>, AccountId32> + ApiExt<B>,
 	DigestItemFor<B>: CompatibleDigestItem<P::Signature>,
 	P: Pair + Send + Sync + 'static,
 	P::Public: Send + Sync + Hash + Eq + Clone + Decode + Encode + Debug + 'static,
@@ -212,6 +215,8 @@ where
 		let parent_hash = *block.header.parent_hash();
 		let authorities = authorities(self.client.as_ref(), &BlockId::Hash(parent_hash))
 			.map_err(|e| format!("Could not fetch authorities at {:?}: {:?}", parent_hash, e))?;
+
+		let weights = weights(self.client.as_ref(), &BlockId::Hash(parent_hash));
 
 		let create_inherent_data_providers = self
 			.create_inherent_data_providers
@@ -234,6 +239,7 @@ where
 			block.header,
 			hash,
 			&authorities[..],
+			weights,
 			self.check_for_equivocation,
 		)
 		.map_err(|e| e.to_string())?;
@@ -381,7 +387,7 @@ pub fn import_queue<'a, P, Block, I, C, S, CAW, CIDP>(
 ) -> Result<DefaultImportQueue<Block, C>, sp_consensus::Error>
 where
 	Block: BlockT,
-	C::Api: BlockBuilderApi<Block> + AuraApi<Block, AuthorityId<P>> + ApiExt<Block>,
+	C::Api: BlockBuilderApi<Block> + AuraApi<Block, AuthorityId<P>, AccountId32> + ApiExt<Block>,
 	C: 'static
 		+ ProvideRuntimeApi<Block>
 		+ BlockOf

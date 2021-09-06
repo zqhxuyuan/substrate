@@ -228,6 +228,13 @@ pub mod pallet {
 
 			Self::verify_and_import_uncles(new_uncles)
 		}
+
+		#[pallet::weight(0)]
+		pub fn set_author(origin: OriginFor<T>, author: T::AccountId) -> DispatchResult {
+			<Author<T>>::put(&author);
+			log::info!("set author:{:?}, result:{:?}", author, <Author<T>>::get());
+			Ok(())
+		}
 	}
 
 	#[pallet::inherent]

@@ -270,7 +270,20 @@ impl pallet_sudo::Config for Runtime {
 impl pallet_template::Config for Runtime {
 	type Event = Event;
 }
-
+impl pallet_utility::Config for Runtime {
+	type Event = Event;
+	type Call = Call;
+	type WeightInfo = ();
+}
+parameter_types! {
+	pub const UncleGenerations: BlockNumber = 1;
+}
+impl pallet_authorship::Config for Runtime {
+	type FindAuthor = pallet_aura::FindAccountFromAuthorIndex<Self, Aura>;
+	type UncleGenerations = UncleGenerations;
+	type FilterUncle = ();
+	type EventHandler = ();
+}
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
 	pub enum Runtime where
@@ -279,9 +292,11 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Utility: pallet_utility::{Pallet, Call, Event},
 		// RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-		Aura: pallet_aura::{Pallet, Config<T>, Storage},
+		Authorship: pallet_authorship::{Pallet, Call, Storage, Inherent},
+		Aura: pallet_aura::{Pallet, Config<T>, Storage, Call},
 		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
@@ -376,7 +391,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
+	impl sp_consensus_aura::AuraApi<Block, AuraId, AccountId> for Runtime {
 		fn slot_duration() -> sp_consensus_aura::SlotDuration {
 			sp_consensus_aura::SlotDuration::from_millis(Aura::slot_duration())
 		}
@@ -384,6 +399,17 @@ impl_runtime_apis! {
 		fn authorities() -> Vec<AuraId> {
 			Aura::authorities()
 		}
+
+		fn accounts() -> Vec<AccountId> {
+			Aura::accounts()
+		}
+
+		fn weights() -> Vec<u64> {
+			Aura::weights()
+		}
+		// fn set_author(at: &BlockId<Block>, account: AccountId) {
+		// 	Authorship::set_author(at, account);
+		// }
 	}
 
 	impl sp_session::SessionKeys<Block> for Runtime {

@@ -805,7 +805,7 @@ cfg_if! {
 				}
 			}
 
-			impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
+			impl sp_consensus_aura::AuraApi<Block, AuraId, AccountId> for Runtime {
 				fn slot_duration() -> sp_consensus_aura::SlotDuration {
 					sp_consensus_aura::SlotDuration::from_millis(1000)
 				}
@@ -816,6 +816,13 @@ cfg_if! {
 						AuraId::from(authority)
 					}).collect()
 				}
+				fn accounts() -> Vec<AccountId> {
+					vec![]
+				}
+				fn weights() -> Vec<u64> {
+					vec![]
+				}
+				// fn set_author(account: AccountId) {}
 			}
 
 			impl sp_consensus_babe::BabeApi<Block> for Runtime {
@@ -1063,7 +1070,7 @@ cfg_if! {
 				}
 			}
 
-			impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
+			impl sp_consensus_aura::AuraApi<Block, AuraId, AccountId> for Runtime {
 				fn slot_duration() -> sp_consensus_aura::SlotDuration {
 					sp_consensus_aura::SlotDuration::from_millis(1000)
 				}
@@ -1074,6 +1081,13 @@ cfg_if! {
 						AuraId::from(authority)
 					}).collect()
 				}
+				fn accounts() -> Vec<AccountId> {
+					vec![]
+				}
+				fn weights() -> Vec<u64> {
+					vec![]
+				}
+				// fn set_author(account: AccountId) {}
 			}
 
 			impl sp_consensus_babe::BabeApi<Block> for Runtime {

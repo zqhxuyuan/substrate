@@ -83,7 +83,7 @@ pub enum ConsensusLog<AuthorityId: Codec> {
 
 sp_api::decl_runtime_apis! {
 	/// API necessary for block authorship with aura.
-	pub trait AuraApi<AuthorityId: Codec> {
+	pub trait AuraApi<AuthorityId: Codec, AccountId: Codec> {
 		/// Returns the slot duration for Aura.
 		///
 		/// Currently, only the value provided by this type at genesis will be used.
@@ -91,6 +91,12 @@ sp_api::decl_runtime_apis! {
 
 		// Return the current set of authorities.
 		fn authorities() -> Vec<AuthorityId>;
+
+		fn accounts() -> Vec<AccountId>;
+
+		fn weights() -> Vec<u64>;
+
+		// fn set_author(account: AccountId);
 	}
 }
 

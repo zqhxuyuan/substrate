@@ -79,6 +79,7 @@ pub mod pallet {
 	}
 
 	#[pallet::pallet]
+	#[pallet::generate_store(pub(crate) trait Store)]
 	pub struct Pallet<T>(sp_std::marker::PhantomData<T>);
 
 	#[pallet::hooks]
@@ -110,10 +111,35 @@ pub mod pallet {
 		}
 	}
 
+	#[pallet::call]
+	impl<T: Config> Pallet<T> {
+		#[pallet::weight(0)]
+		pub fn change_weights(
+			origin: OriginFor<T>,
+			weights: Vec<u64>,
+		) -> DispatchResult {
+			let sender = ensure_signed(origin)?; // todo: sudo
+			log::info!("weights:{:?}", weights);
+			if let Some(n_authorities) = <Authorities<T>>::decode_len() {
+				log::info!("auth size:{}", n_authorities);
+			}
+			<Weights<T>>::put(&weights);
+			Ok(())
+		}
+	}
+
 	/// The current authority set.
 	#[pallet::storage]
 	#[pallet::getter(fn authorities)]
 	pub(super) type Authorities<T: Config> = StorageValue<_, Vec<T::AuthorityId>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn accounts)]
+	pub(super) type Accounts<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn weights)]
+	pub(super) type Weights<T: Config> = StorageValue<_, Vec<u64>, ValueQuery>;
 
 	/// The current slot of this block.
 	///
@@ -125,19 +151,23 @@ pub mod pallet {
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
 		pub authorities: Vec<T::AuthorityId>,
+		pub accounts: Vec<T::AccountId>,
 	}
 
 	#[cfg(feature = "std")]
 	impl<T: Config> Default for GenesisConfig<T> {
 		fn default() -> Self {
-			Self { authorities: Vec::new() }
+			Self {
+				authorities: Vec::new(),
+				accounts: Vec::new(),
+			}
 		}
 	}
 
 	#[pallet::genesis_build]
 	impl<T: Config> GenesisBuild<T> for GenesisConfig<T> {
 		fn build(&self) {
-			Pallet::<T>::initialize_authorities(&self.authorities);
+			Pallet::<T>::initialize_authorities(&self.authorities, &self.accounts);
 		}
 	}
 }
@@ -151,10 +181,25 @@ impl<T: Config> Pallet<T> {
 		<frame_system::Pallet<T>>::deposit_log(log.into());
 	}
 
-	fn initialize_authorities(authorities: &[T::AuthorityId]) {
+	fn change_accounts(new: Vec<T::AccountId>) {
+		<Accounts<T>>::put(&new);
+		log::info!("change accounts: {:?}", <Accounts<T>>::get());
+
+		// let log: DigestItem<T::Hash> =
+		// 	DigestItem::Consensus(AURA_ENGINE_ID, ConsensusLog::AuthoritiesChange(new).encode());
+		// <frame_system::Pallet<T>>::deposit_log(log.into());
+	}
+
+	fn initialize_authorities(authorities: &[T::AuthorityId], accounts: &[T::AccountId]) {
 		if !authorities.is_empty() {
 			assert!(<Authorities<T>>::get().is_empty(), "Authorities are already initialized!");
 			<Authorities<T>>::put(authorities);
+			log::info!("init authorities: {:?}", <Authorities<T>>::get());
+		}
+		if !accounts.is_empty() {
+			assert!(<Accounts<T>>::get().is_empty(), "Accounts are already initialized!");
+			<Accounts<T>>::put(accounts);
+			log::info!("init accounts: {:?}", <Accounts<T>>::get());
 		}
 	}
 
@@ -190,8 +235,13 @@ impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 	where
 		I: Iterator<Item = (&'a T::AccountId, T::AuthorityId)>,
 	{
-		let authorities = validators.map(|(_, k)| k).collect::<Vec<_>>();
-		Self::initialize_authorities(&authorities);
+		let mut authorities: Vec<T::AuthorityId> = vec![];
+		let mut accounts: Vec<T::AccountId> = vec![];
+		validators.for_each(|(x, y)| {
+			authorities.push(y);
+			accounts.push(x.clone());
+		});
+		Self::initialize_authorities(&authorities, &accounts);
 	}
 
 	fn on_new_session<'a, I: 'a>(changed: bool, validators: I, _queued_validators: I)
@@ -200,10 +250,19 @@ impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 	{
 		// instant changes
 		if changed {
-			let next_authorities = validators.map(|(_, k)| k).collect::<Vec<_>>();
+			let mut next_authorities: Vec<T::AuthorityId> = vec![];
+			let mut next_accounts: Vec<T::AccountId> = vec![];
+			validators.for_each(|(x, y)| {
+				next_authorities.push(y);
+				next_accounts.push(x.clone());
+			});
 			let last_authorities = Self::authorities();
+			let last_accounts = Self::accounts();
 			if next_authorities != last_authorities {
 				Self::change_authorities(next_authorities);
+			}
+			if next_accounts != last_accounts {
+				Self::change_accounts(next_accounts);
 			}
 		}
 	}
@@ -223,9 +282,13 @@ impl<T: Config> FindAuthor<u32> for Pallet<T> {
 	where
 		I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
 	{
+		// let accounts = Self::accounts();
+		// log::info!("accounts1:{:?}", accounts);
+		// log::info!("accounts2:{:?}", <Accounts<T>>::get());
 		for (id, mut data) in digests.into_iter() {
 			if id == AURA_ENGINE_ID {
 				let slot = Slot::decode(&mut data).ok()?;
+				// todo: do the same work with client
 				let author_index = *slot % Self::authorities().len() as u64;
 				return Some(author_index as u32)
 			}
@@ -235,24 +298,51 @@ impl<T: Config> FindAuthor<u32> for Pallet<T> {
 	}
 }
 
-/// We can not implement `FindAuthor` twice, because the compiler does not know if
-/// `u32 == T::AuthorityId` and thus, prevents us to implement the trait twice.
-#[doc(hidden)]
 pub struct FindAccountFromAuthorIndex<T, Inner>(sp_std::marker::PhantomData<(T, Inner)>);
 
-impl<T: Config, Inner: FindAuthor<u32>> FindAuthor<T::AuthorityId>
-	for FindAccountFromAuthorIndex<T, Inner>
+impl<T: Config, Inner: FindAuthor<u32>> FindAuthor<T::AccountId>
+for FindAccountFromAuthorIndex<T, Inner>
 {
-	fn find_author<'a, I>(digests: I) -> Option<T::AuthorityId>
-	where
-		I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
+	fn find_author<'a, I>(digests: I) -> Option<T::AccountId>
+		where
+			I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
 	{
 		let i = Inner::find_author(digests)?;
 
+		// let validators = <Pallet<T>>::authorities();
+		// let authorityId: Option<T::AuthorityId> = validators.get(i as usize).map(|k| k.clone());
+		// let accountId: Option<T::AccountId> = match authorityId {
+		// 	Some(author) => author.into(),
+		// 	None => None
+		// };
+		//todo: here get accounts empty!!
 		let validators = <Pallet<T>>::authorities();
-		validators.get(i as usize).map(|k| k.clone())
+		let accounts = <Pallet<T>>::accounts();
+		// let accountId: Option<T::AccountId> = accounts.get(i as usize).map(|k| k.clone());
+		let accountId = accounts.get(i as usize).map(|k| k.clone());
+		// log::info!("find_author account index and id is {} - {:?}", i, accountId);
+		accountId
 	}
 }
+
+// /// We can not implement `FindAuthor` twice, because the compiler does not know if
+// /// `u32 == T::AuthorityId` and thus, prevents us to implement the trait twice.
+// #[doc(hidden)]
+// pub struct FindAccountFromAuthorIndex<T, Inner>(sp_std::marker::PhantomData<(T, Inner)>);
+//
+// impl<T: Config, Inner: FindAuthor<u32>> FindAuthor<T::AuthorityId>
+// 	for FindAccountFromAuthorIndex<T, Inner>
+// {
+// 	fn find_author<'a, I>(digests: I) -> Option<T::AuthorityId>
+// 	where
+// 		I: 'a + IntoIterator<Item = (ConsensusEngineId, &'a [u8])>,
+// 	{
+// 		let i = Inner::find_author(digests)?;
+//
+// 		let validators = <Pallet<T>>::authorities();
+// 		validators.get(i as usize).map(|k| k.clone())
+// 	}
+// }
 
 /// Find the authority ID of the Aura authority who authored the current block.
 pub type AuraAuthorId<T> = FindAccountFromAuthorIndex<T, Pallet<T>>;

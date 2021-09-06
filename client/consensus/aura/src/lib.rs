@@ -57,7 +57,7 @@ use sp_consensus::{
 	BlockOrigin, CanAuthorWith, Environment, Error as ConsensusError, Proposer, SelectChain,
 };
 use sp_consensus_slots::Slot;
-use sp_core::crypto::{Pair, Public};
+use sp_core::crypto::{Pair, Public, AccountId32};
 use sp_inherents::CreateInherentDataProviders;
 use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
 use sp_runtime::{
@@ -78,6 +78,7 @@ pub use sp_consensus_aura::{
 	inherents::{InherentDataProvider, InherentType as AuraInherent, INHERENT_IDENTIFIER},
 	AuraApi, ConsensusLog, AURA_ENGINE_ID,
 };
+use std::collections::HashMap;
 
 type AuthorityId<P> = <P as Pair>::Public;
 
@@ -85,20 +86,73 @@ type AuthorityId<P> = <P as Pair>::Public;
 pub type SlotDuration = sc_consensus_slots::SlotDuration<sp_consensus_aura::SlotDuration>;
 
 /// Get type of `SlotDuration` for Aura.
-pub fn slot_duration<A, B, C>(client: &C) -> CResult<SlotDuration>
+pub fn slot_duration<A, B, C, D>(client: &C) -> CResult<SlotDuration>
 where
 	A: Codec,
+	D: Codec,
 	B: BlockT,
 	C: AuxStore + ProvideRuntimeApi<B> + UsageProvider<B>,
-	C::Api: AuraApi<B, A>,
+	C::Api: AuraApi<B, A, D>,
 {
 	SlotDuration::get_or_compute(client, |a, b| a.slot_duration(b).map_err(Into::into))
 }
 
 /// Get slot author for given block along with authorities.
-fn slot_author<P: Pair>(slot: Slot, authorities: &[AuthorityId<P>]) -> Option<&AuthorityId<P>> {
+fn slot_author<P: Pair>(weights: Option<Vec<u64>>, slot: Slot, authorities: &[AuthorityId<P>]) -> Option<&AuthorityId<P>> {
 	if authorities.is_empty() {
 		return None
+	}
+
+	match weights {
+		Some(weights) => {
+			if weights.len() > 0 {
+				log::info!("use weight authorities:{:?}", weights);
+				let len = authorities.len();
+				let total_weight: u64 = weights.iter().sum();
+				assert!(len == weights.len(), "authrities:{} and weights:{} should has equal length", len, weights.len());
+				// let index_vec: Vec<u64> = (0..len as u64).collect();
+				// let mut auth_index_weight_map: Vec<(&u64, &u64)> = index_vec.iter().zip(weights.iter()).collect::<Vec<_>>();
+
+				let mut index_vec: Vec<u64> = vec![];
+				let mut prev_sum = 0 as u64;
+				for weight in weights {
+					prev_sum = prev_sum + weight;
+					index_vec.push(prev_sum);
+				}
+				let mut slot_map: Vec<(u64, u64)> = vec![];
+				for (pos, index) in index_vec.iter().enumerate() {
+					let current = index - 1;
+					if pos == 0 {
+						slot_map.push((0, current));
+					} else {
+						slot_map.push((index_vec.get(pos - 1).unwrap().clone(), current));
+					}
+				}
+				let mut slot_index_map = HashMap::new();
+				for (pos, (start, end)) in slot_map.iter().enumerate() {
+					let start_i = start.clone();
+					let end_i = end.clone();
+					for index in start_i..end_i+1 {
+						slot_index_map.insert(index, pos as u64);
+					}
+				}
+
+				let idx = *slot % (total_weight as u64);
+				assert!(
+					idx <= usize::MAX as u64,
+					"It is impossible to have a vector with length beyond the address space; qed",
+				);
+				let inner_idx = slot_index_map.get(&idx).expect("").clone();
+				log::info!("found idx:{} and inner idx:{}", idx, inner_idx);
+				let current_author = authorities.get(inner_idx as usize).expect(
+					"authorities not empty; index constrained to list length;this is a valid index; qed",
+				);
+				return Some(current_author)
+			}
+		}
+		None => {
+
+		}
 	}
 
 	let idx = *slot % (authorities.len() as u64);
@@ -179,7 +233,7 @@ where
 	P::Signature: TryFrom<Vec<u8>> + Hash + Member + Encode + Decode,
 	B: BlockT,
 	C: ProvideRuntimeApi<B> + BlockOf + ProvideCache<B> + AuxStore + HeaderBackend<B> + Send + Sync,
-	C::Api: AuraApi<B, AuthorityId<P>>,
+	C::Api: AuraApi<B, AuthorityId<P>, AccountId32>,
 	SC: SelectChain<B>,
 	I: BlockImport<B, Transaction = sp_api::TransactionFor<C, B>> + Send + Sync + 'static,
 	PF: Environment<B, Error = Error> + Send + Sync + 'static,
@@ -268,7 +322,7 @@ pub fn build_aura_worker<P, B, C, PF, I, SO, L, BS, Error>(
 where
 	B: BlockT,
 	C: ProvideRuntimeApi<B> + BlockOf + ProvideCache<B> + AuxStore + HeaderBackend<B> + Send + Sync,
-	C::Api: AuraApi<B, AuthorityId<P>>,
+	C::Api: AuraApi<B, AuthorityId<P>, AccountId32>,
 	PF: Environment<B, Error = Error> + Send + Sync + 'static,
 	PF::Proposer: Proposer<B, Error = Error, Transaction = sp_api::TransactionFor<C, B>>,
 	P: Pair + Send + Sync,
@@ -316,7 +370,7 @@ impl<B, C, E, I, P, Error, SO, L, BS> sc_consensus_slots::SimpleSlotWorker<B>
 where
 	B: BlockT,
 	C: ProvideRuntimeApi<B> + BlockOf + ProvideCache<B> + HeaderBackend<B> + Sync,
-	C::Api: AuraApi<B, AuthorityId<P>>,
+	C::Api: AuraApi<B, AuthorityId<P>, AccountId32>,
 	E: Environment<B, Error = Error>,
 	E::Proposer: Proposer<B, Error = Error, Transaction = sp_api::TransactionFor<C, B>>,
 	I: BlockImport<B, Transaction = sp_api::TransactionFor<C, B>> + Send + Sync + 'static,
@@ -359,11 +413,21 @@ where
 
 	fn claim_slot(
 		&self,
-		_header: &B::Header,
+		header: &B::Header,
 		slot: Slot,
 		epoch_data: &Self::EpochData,
 	) -> Option<Self::Claim> {
-		let expected_author = slot_author::<P>(slot, epoch_data);
+		let weights = weights(self.client.as_ref(), &BlockId::Hash(header.hash()));
+		let accounts: Option<Vec<AccountId32>> = accounts(self.client.as_ref(), &BlockId::Hash(header.hash()));
+		log::info!("claim_slot get runtime accounts:{:?}", accounts);
+		// if accounts.is_some() {
+		// 	let accounts = accounts.unwrap();
+		// 	set_author(self.client.as_ref(), &BlockId::Hash(header.hash()), accounts[0].clone());
+		// }
+
+		let expected_author = slot_author::<P>(
+			// self.client.as_ref(),
+			weights, slot, epoch_data);
 		expected_author.and_then(|p| {
 			if SyncCryptoStore::has_keys(
 				&*self.keystore,
@@ -540,12 +604,13 @@ fn find_pre_digest<B: BlockT, Signature: Codec>(header: &B::Header) -> Result<Sl
 	pre_digest.ok_or_else(|| aura_err(Error::NoDigestFound))
 }
 
-fn authorities<A, B, C>(client: &C, at: &BlockId<B>) -> Result<Vec<A>, ConsensusError>
+fn authorities<A, B, C, D>(client: &C, at: &BlockId<B>) -> Result<Vec<A>, ConsensusError>
 where
 	A: Codec + Debug,
+	D: Codec,
 	B: BlockT,
 	C: ProvideRuntimeApi<B> + BlockOf + ProvideCache<B>,
-	C::Api: AuraApi<B, A>,
+	C::Api: AuraApi<B, A, D>,
 {
 	client
 		.runtime_api()
@@ -553,6 +618,58 @@ where
 		.ok()
 		.ok_or_else(|| sp_consensus::Error::InvalidAuthoritiesSet.into())
 }
+
+fn weights<A, B, C, D>(client: &C, at: &BlockId<B>) -> Option<Vec<u64>>
+	where
+		A: Codec + Debug,
+		D: Codec,
+		B: BlockT,
+		C: ProvideRuntimeApi<B> + BlockOf + ProvideCache<B>,
+		C::Api: AuraApi<B, A, D>,
+{
+	//todo: new error: InvalidAuthorityWeights
+	client
+		.runtime_api()
+		.weights(at)
+		.ok()
+	// match client
+	// 	.runtime_api()
+	// 	.weights(at)
+	// 	.ok() {
+	// 	Ok(vec) => {
+	// 		Some(vec)
+	// 	},
+	// 	Err(_) => None
+	// }
+}
+
+fn accounts<A, B, C, D>(client: &C, at: &BlockId<B>) -> Option<Vec<D>>
+	where
+		A: Codec + Debug,
+		D: Codec,
+		B: BlockT,
+		C: ProvideRuntimeApi<B> + BlockOf + ProvideCache<B>,
+		C::Api: AuraApi<B, A, D>,
+{
+	client
+		.runtime_api()
+		.accounts(at)
+		.ok()
+}
+
+// fn set_author<A, B, C, D>(client: &C, at: &BlockId<B>, account: D) -> Option<()>
+// 	where
+// 		A: Codec + Debug,
+// 		D: Codec,
+// 		B: BlockT,
+// 		C: ProvideRuntimeApi<B> + BlockOf + ProvideCache<B>,
+// 		C::Api: AuraApi<B, A, D>,
+// {
+// 	client
+// 		.runtime_api()
+// 		.set_author(at, account)
+// 		.ok()
+// }
 
 #[cfg(test)]
 mod tests {

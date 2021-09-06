@@ -36,6 +36,15 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 	(get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
+pub fn authority_keys_from_seed_accountId(s: &str, grandpa_weight: u64) -> (AuraId, GrandpaId, AccountId, u64) {
+	(
+		get_from_seed::<AuraId>(s),
+		get_from_seed::<GrandpaId>(s),
+	 	get_account_id_from_seed::<sr25519::Public>(s),
+		grandpa_weight
+	)
+}
+
 pub fn development_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
@@ -49,7 +58,7 @@ pub fn development_config() -> Result<ChainSpec, String> {
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
-				vec![authority_keys_from_seed("Alice")],
+				vec![authority_keys_from_seed_accountId("Alice", 1)],
 				// Sudo account
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				// Pre-funded accounts
@@ -88,7 +97,10 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 			testnet_genesis(
 				wasm_binary,
 				// Initial PoA authorities
-				vec![authority_keys_from_seed("Alice"), authority_keys_from_seed("Bob")],
+				vec![
+					authority_keys_from_seed_accountId("Alice", 1),
+					authority_keys_from_seed_accountId("Bob", 9)
+				],
 				// Sudo account
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
 				// Pre-funded accounts
@@ -125,7 +137,7 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 /// Configure initial storage state for FRAME modules.
 fn testnet_genesis(
 	wasm_binary: &[u8],
-	initial_authorities: Vec<(AuraId, GrandpaId)>,
+	initial_authorities: Vec<(AuraId, GrandpaId, AccountId, u64)>,
 	root_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
 	_enable_println: bool,
@@ -142,9 +154,10 @@ fn testnet_genesis(
 		},
 		aura: AuraConfig {
 			authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
+			accounts: initial_authorities.iter().map(|x| (x.2.clone())).collect(),
 		},
 		grandpa: GrandpaConfig {
-			authorities: initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect(),
+			authorities: initial_authorities.iter().map(|x| (x.1.clone(), x.3)).collect(),
 		},
 		sudo: SudoConfig {
 			// Assign network admin rights.
