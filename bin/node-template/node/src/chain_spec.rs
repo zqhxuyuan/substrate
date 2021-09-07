@@ -99,7 +99,10 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
 				// Initial PoA authorities
 				vec![
 					authority_keys_from_seed_accountId("Alice", 1),
-					authority_keys_from_seed_accountId("Bob", 9)
+					authority_keys_from_seed_accountId("Bob", 2),
+					authority_keys_from_seed_accountId("Charlie", 4),
+					authority_keys_from_seed_accountId("Dave", 8),
+					authority_keys_from_seed_accountId("Eve", 16),
 				],
 				// Sudo account
 				get_account_id_from_seed::<sr25519::Public>("Alice"),

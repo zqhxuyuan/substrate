@@ -32,6 +32,7 @@ either = { version = "1.5", default-features = false }
 sha3 = { version = "0.8", default-features = false }
 libsecp256k1 = { version = "0.3.2", default-features = false, features = ["hmac"] }
 #libsecp256k1 = { version = "0.6", default-features = false, features = ["hmac", "static-context"], optional = true }
+hex = { version = "0.4.3", optional = true }
 
 [dev-dependencies]
 serde_json = "1.0.41"
@@ -50,6 +51,7 @@ std = [
 	"sp-arithmetic/std",
 	"codec/std",
 	"log/std",
+	"hex/std",
 	"sha3/std",
 	"libsecp256k1/std",
 	"sp-core/std",

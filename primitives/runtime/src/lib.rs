@@ -41,7 +41,7 @@ pub use sp_application_crypto as app_crypto;
 #[cfg(feature = "std")]
 pub use sp_core::storage::{Storage, StorageChild};
 
-use sp_core::{crypto::{self, Public}, ecdsa, ed25519, hash::{H256, H512}, sr25519, H160};
+use sp_core::{crypto::{self, Public}, ecdsa, ecdsa2, ed25519, hash::{H256, H512}, sr25519, H160};
 use sp_std::{convert::TryFrom, prelude::*};
 
 use codec::{Decode, Encode};
@@ -56,8 +56,8 @@ mod runtime_string;
 pub mod testing;
 pub mod traits;
 pub mod transaction_validity;
-mod signature;
-mod signer;
+// mod signature;
+// mod signer;
 
 pub use crate::runtime_string::*;
 
@@ -226,7 +226,8 @@ pub enum MultiSignature {
 	Sr25519(sr25519::Signature),
 	/// An ECDSA/SECP256k1 signature.
 	Ecdsa(ecdsa::Signature),
-	// EthereumSignature(ecdsa::Signature)
+	/// eth signature
+	EthereumSignature(ecdsa2::Signature2)
 }
 
 /// Public key for any known crypto algorithm.
@@ -239,31 +240,14 @@ pub enum MultiSigner {
 	Sr25519(sr25519::Public),
 	/// An SECP256k1/ECDSA identity (actually, the Blake2 hash of the compressed pub key).
 	Ecdsa(ecdsa::Public),
-	// EthereumSigner([u8; 20])
+	// EthereumSigner(ecdsa2::Public2),
+	EthereumSigner2(EthSigner)
 }
 
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-#[derive(Eq, PartialEq, Clone, Encode, Decode, RuntimeDebug)]
-pub struct ComposeSignature {
-	pub multi_sig: Option<MultiSignature>,
-	pub eth_sig: Option<EthereumSignature>
-}
-
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Encode, Decode, RuntimeDebug)]
-#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct ComposeSigner {
-	multi_sign: Option<MultiSigner>,
-	eth_sign: Option<EthereumSigner>,
-}
-
-impl From<ed25519::Signature> for ComposeSignature {
-	fn from(x: ed25519::Signature) -> Self {
-		Self {
-			multi_sig: Some(MultiSignature::Ed25519(x)),
-			eth_sig: None
-		}
-	}
-}
+/// Public key for an Ethereum / H160 compatible account
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Encode, Decode, sp_core::RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
+pub struct EthSigner([u8; 32]);
 
 impl From<ed25519::Signature> for MultiSignature {
 	fn from(x: ed25519::Signature) -> Self {
@@ -278,6 +262,11 @@ impl From<sr25519::Signature> for MultiSignature {
 impl From<ecdsa::Signature> for MultiSignature {
 	fn from(x: ecdsa::Signature) -> Self {
 		Self::Ecdsa(x)
+	}
+}
+impl From<ecdsa2::Signature2> for MultiSignature {
+	fn from(x: ecdsa2::Signature2) -> Self {
+		Self::EthereumSignature(x)
 	}
 }
 
@@ -314,6 +303,17 @@ impl TryFrom<MultiSignature> for ecdsa::Signature {
 	}
 }
 
+impl TryFrom<MultiSignature> for ecdsa2::Signature2 {
+	type Error = ();
+	fn try_from(m: MultiSignature) -> Result<Self, Self::Error> {
+		if let MultiSignature::EthereumSignature(x) = m {
+			Ok(x)
+		} else {
+			Err(())
+		}
+	}
+}
+
 impl Default for MultiSignature {
 	fn default() -> Self {
 		Self::Ed25519(Default::default())
@@ -341,6 +341,7 @@ impl AsRef<[u8]> for MultiSigner {
 			Self::Sr25519(ref who) => who.as_ref(),
 			Self::Ecdsa(ref who) => who.as_ref(),
 			// Self::EthereumSigner(ref who) => who.as_ref(),
+			Self::EthereumSigner2(ref who) => who.as_ref(),
 		}
 	}
 }
@@ -352,7 +353,10 @@ impl traits::IdentifyAccount for MultiSigner {
 			Self::Ed25519(who) => <[u8; 32]>::from(who).into(),
 			Self::Sr25519(who) => <[u8; 32]>::from(who).into(),
 			Self::Ecdsa(who) => sp_io::hashing::blake2_256(who.as_ref()).into(),
-			// Self::EthereumSigner(who) => <[u8; 20]>::from(who).into(),
+			// the signer's Public2 has 33 bytes, can't directly use: <[u8; 32]>::from(who).into()
+			// as Ecdsa, first hash to 256 bits, which has type: [u8; 32], then into() AccountId32
+			// Self::EthereumSigner(who) => sp_io::hashing::keccak_256(who.as_ref()).into(),
+			Self::EthereumSigner2(who) => <[u8; 32]>::from(who).into(),
 		}
 	}
 }
@@ -360,6 +364,36 @@ impl traits::IdentifyAccount for MultiSigner {
 impl From<ed25519::Public> for MultiSigner {
 	fn from(x: ed25519::Public) -> Self {
 		Self::Ed25519(x)
+	}
+}
+impl From<sr25519::Public> for MultiSigner {
+	fn from(x: sr25519::Public) -> Self {
+		Self::Sr25519(x)
+	}
+}
+impl From<ecdsa::Public> for MultiSigner {
+	fn from(x: ecdsa::Public) -> Self {
+		Self::Ecdsa(x)
+	}
+}
+//todo: ecdsa2::Public2 to EthereumSigner2
+impl From<ecdsa2::Public2> for MultiSigner {
+	fn from(x: ecdsa2::Public2) -> Self {
+		let decompressed =
+			secp256k1::PublicKey::parse_slice(&x.0, Some(secp256k1::PublicKeyFormat::Compressed))
+				.expect("Wrong compressed public key provided")
+				.serialize();
+		let mut m = [0u8; 64];
+		m.copy_from_slice(&decompressed[1..65]);
+		let acc = H256::from_slice(Keccak256::digest(&m).as_slice());
+		let eth = EthSigner(acc.0);
+		Self::EthereumSigner2(eth)
+		// Self::EthereumSigner(x)
+	}
+}
+impl From<EthSigner> for MultiSigner {
+	fn from(x: EthSigner) -> Self {
+		Self::EthereumSigner2(x)
 	}
 }
 
@@ -374,12 +408,6 @@ impl TryFrom<MultiSigner> for ed25519::Public {
 	}
 }
 
-impl From<sr25519::Public> for MultiSigner {
-	fn from(x: sr25519::Public) -> Self {
-		Self::Sr25519(x)
-	}
-}
-
 impl TryFrom<MultiSigner> for sr25519::Public {
 	type Error = ();
 	fn try_from(m: MultiSigner) -> Result<Self, Self::Error> {
@@ -388,12 +416,6 @@ impl TryFrom<MultiSigner> for sr25519::Public {
 		} else {
 			Err(())
 		}
-	}
-}
-
-impl From<ecdsa::Public> for MultiSigner {
-	fn from(x: ecdsa::Public) -> Self {
-		Self::Ecdsa(x)
 	}
 }
 
@@ -408,6 +430,40 @@ impl TryFrom<MultiSigner> for ecdsa::Public {
 	}
 }
 
+// impl TryFrom<MultiSigner> for ecdsa2::Public2 {
+// 	type Error = ();
+// 	fn try_from(m: MultiSigner) -> Result<Self, Self::Error> {
+// 		if let MultiSigner::EthereumSigner(x) = m {
+// 			Ok(x)
+// 		} else {
+// 			Err(())
+// 		}
+// 	}
+// }
+
+impl TryFrom<MultiSigner> for EthSigner {
+	type Error = ();
+	fn try_from(m: MultiSigner) -> Result<Self, Self::Error> {
+		if let MultiSigner::EthereumSigner2(x) = m {
+			Ok(x)
+		} else {
+			Err(())
+		}
+	}
+}
+
+impl AsRef<[u8]> for EthSigner {
+	fn as_ref(&self) -> &[u8] {
+		&self.0[..]
+	}
+}
+
+impl From<EthSigner> for [u8; 32] {
+	fn from(x: EthSigner) -> [u8; 32] {
+		x.0
+	}
+}
+
 #[cfg(feature = "std")]
 impl std::fmt::Display for MultiSigner {
 	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -415,7 +471,8 @@ impl std::fmt::Display for MultiSigner {
 			Self::Ed25519(ref who) => write!(fmt, "ed25519: {}", who),
 			Self::Sr25519(ref who) => write!(fmt, "sr25519: {}", who),
 			Self::Ecdsa(ref who) => write!(fmt, "ecdsa: {}", who),
-			// Self::EthereumSigner(ref who) => write!(fmt, "ecdsa"),
+			// Self::EthereumSigner(ref who) => write!(fmt, "ethereum: {}", who),
+			Self::EthereumSigner2(ref who) => write!(fmt, "ethereum2: {:?}", who),
 		}
 	}
 }
@@ -423,7 +480,6 @@ impl std::fmt::Display for MultiSigner {
 impl Verify for MultiSignature {
 	type Signer = MultiSigner;
 	fn verify<L: Lazy<[u8]>>(&self, mut msg: L, signer: &AccountId32) -> bool {
-	// fn verify<L: Lazy<[u8]>>(&self, mut msg: L, signer: &<Self::Signer as IdentifyAccount>::AccountId) -> bool {
 		match (self, signer) {
 			(Self::Ed25519(ref sig), who) =>
 				sig.verify(msg, &ed25519::Public::from_slice(who.as_ref())),
@@ -438,75 +494,27 @@ impl Verify for MultiSignature {
 					_ => false,
 				}
 			},
-		}
-	}
-}
-
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Eq, PartialEq, Clone, Encode, Decode, sp_core::RuntimeDebug)]
-pub struct EthereumSignature(ecdsa::Signature);
-
-/// Public key for an Ethereum / H160 compatible account
-#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Encode, Decode, sp_core::RuntimeDebug)]
-#[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-pub struct EthereumSigner([u8; 20]);
-
-impl Verify for EthereumSignature {
-	type Signer = EthereumSigner;
-	fn verify<L: Lazy<[u8]>>(&self, mut msg: L, signer: &H160) -> bool {
-		let mut m = [0u8; 32];
-		m.copy_from_slice(Keccak256::digest(msg.get()).as_slice());
-		match sp_io::crypto::secp256k1_ecdsa_recover(self.0.as_ref(), &m) {
-			Ok(pubkey) => {
-				H160::from(H256::from_slice(Keccak256::digest(&pubkey).as_slice())) == *signer
-			}
-			Err(sp_io::EcdsaVerifyError::BadRS) | Err(sp_io::EcdsaVerifyError::BadV) | Err(sp_io::EcdsaVerifyError::BadSignature) => {
-				log::error!(target: "evm", "Error recovering");
-				false
+			// eth signer is H160, here use unified AccountId32==H256
+			(Self::EthereumSignature(ref sig), who) => {
+				match sp_io::crypto::secp256k1_ecdsa_recover(
+					sig.as_ref(),
+				    &sp_io::hashing::blake2_256(msg.get())
+				) {
+					Ok(pubkey) => {
+						H256::from_slice(Keccak256::digest(&pubkey).as_slice()) == H256::from_slice(who.as_ref())
+						// let h256_1 = H256::from_slice(Keccak256::digest(&pubkey).as_slice());
+						// let h256_2 = H256::from_slice(who.as_ref());
+						// log::info!("who:{:?}, pubkey:{:?}", who, pubkey);
+						// log::info!("h256_pub:{}, h256_who:{}", h256_1, h256_2);
+						// h256_1 == h256_2
+					}
+					Err(sp_io::EcdsaVerifyError::BadRS) | Err(sp_io::EcdsaVerifyError::BadV) | Err(sp_io::EcdsaVerifyError::BadSignature) => {
+						log::error!(target: "evm", "Error recovering");
+						false
+					}
+				}
 			}
 		}
-	}
-}
-
-impl IdentifyAccount for EthereumSigner {
-	type AccountId = H160;
-	fn into_account(self) -> H160 {
-		self.0.into()
-	}
-}
-
-impl From<[u8; 20]> for EthereumSigner {
-	fn from(x: [u8; 20]) -> Self {
-		EthereumSigner(x)
-	}
-}
-
-impl From<ecdsa::Public> for EthereumSigner {
-	fn from(x: ecdsa::Public) -> Self {
-		let decompressed =
-			secp256k1::PublicKey::parse_slice(&x.0, Some(secp256k1::PublicKeyFormat::Compressed))
-				.expect("Wrong compressed public key provided")
-				.serialize();
-		let mut m = [0u8; 64];
-		m.copy_from_slice(&decompressed[1..65]);
-		let account = H160::from(H256::from_slice(Keccak256::digest(&m).as_slice()));
-		EthereumSigner(account.into())
-	}
-}
-
-impl From<secp256k1::PublicKey> for EthereumSigner {
-	fn from(x: secp256k1::PublicKey) -> Self {
-		let mut m = [0u8; 64];
-		m.copy_from_slice(&x.serialize()[1..65]);
-		let account = H160::from(H256::from_slice(Keccak256::digest(&m).as_slice()));
-		EthereumSigner(account.into())
-	}
-}
-
-#[cfg(feature = "std")]
-impl std::fmt::Display for EthereumSigner {
-	fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(fmt, "ethereum signature: {:?}", H160::from_slice(&self.0))
 	}
 }
 
@@ -1009,6 +1017,8 @@ mod tests {
 	use super::*;
 	use codec::{Decode, Encode};
 	use sp_core::crypto::Pair;
+	use crate::sp_std::convert::TryInto;
+	use crate::traits::{BlakeTwo256, Hash};
 
 	#[test]
 	fn opaque_extrinsic_serialization() {
@@ -1080,6 +1090,345 @@ mod tests {
 
 		let multi_signer = MultiSigner::from(pair.public());
 		assert!(multi_sig.verify(msg, &multi_signer.into_account()));
+	}
+
+	#[test]
+	fn test_spio_blake2_256() {
+		// 要签名的消息
+		let msg = &b"test-message"[..];
+		// 随机生成一对公私钥
+		let (pair2, _) = ecdsa::Pair::generate();
+
+		// 签名
+		let signature2 = pair2.sign(&msg);
+		// 验证签名
+		assert!(ecdsa::Pair::verify(&signature2, msg, &pair2.public()));
+
+		let multi_signer = MultiSigner::from(pair2.public());
+		let who = multi_signer.into_account();
+		println!("who:{:?}", who);
+
+		// 消息的摘要，blake2_256
+		let m = sp_io::hashing::blake2_256(msg);
+
+		// compressed
+		match sp_io::crypto::secp256k1_ecdsa_recover_compressed(signature2.as_ref(), &m) {
+			Ok(pubkey) => {
+				let k1 = sp_io::hashing::blake2_256(pubkey.as_ref());
+				let k2 = <dyn AsRef<[u8; 32]>>::as_ref(&who);
+				// println!("k1:{:?}", k1);
+				// println!("k2:{:?}", k2);
+				assert_eq!(&k1, k2);
+			}
+			_ => {
+			},
+		};
+
+		// un-compressed
+		match sp_io::crypto::secp256k1_ecdsa_recover(signature2.as_ref(), &m) {
+			Ok(pubkey) => {
+				let k1 = sp_io::hashing::blake2_256(pubkey.as_ref());
+				let k2 = <dyn AsRef<[u8; 32]>>::as_ref(&who);
+				// println!("k1:{:?}", k1);
+				// println!("k2:{:?}", k2);
+				assert_ne!(&k1, k2);
+			}
+			_ => {
+			},
+		};
+	}
+
+	#[test]
+	fn test_spio_keccak_256() {
+		// 要签名的消息
+		let msg = &b"test-message"[..];
+		// 随机生成一对公私钥
+		let (pair2, _) = ecdsa::Pair::generate();
+
+		// 签名
+		let signature2 = pair2.sign(&msg);
+		// 验证签名
+		assert!(ecdsa::Pair::verify(&signature2, msg, &pair2.public()));
+
+		let multi_signer = MultiSigner::from(pair2.public());
+		// into_account() 用的是 blake2_256 算法，所以下面如果用其他算法，则不等
+		let who = multi_signer.into_account();
+		println!("who:{:?}", who);
+
+		// 消息的摘要，keccak_256
+		let m = sp_io::hashing::keccak_256(msg);
+
+		// compressed
+		match sp_io::crypto::secp256k1_ecdsa_recover_compressed(signature2.as_ref(), &m) {
+			Ok(pubkey) => {
+				let k1 = sp_io::hashing::blake2_256(pubkey.as_ref());
+				let k2 = <dyn AsRef<[u8; 32]>>::as_ref(&who);
+				// println!("k1:{:?}", k1);
+				// println!("k2:{:?}", k2);
+				assert_ne!(&k1, k2);
+			}
+			_ => {
+			},
+		};
+
+		// un-compressed
+		match sp_io::crypto::secp256k1_ecdsa_recover(signature2.as_ref(), &m) {
+			Ok(pubkey) => {
+				let k1 = sp_io::hashing::blake2_256(pubkey.as_ref());
+				let k2 = <dyn AsRef<[u8; 32]>>::as_ref(&who);
+				// println!("k1:{:?}", k1);
+				// println!("k2:{:?}", k2);
+				assert_ne!(&k1, k2);
+			}
+			_ => {
+			},
+		};
+	}
+
+	#[test]
+	fn test_account_derivation_2() {
+		// Test from https://asecuritysite.com/encryption/ethadd
+		let secret_key =
+			hex::decode("502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875")
+				.unwrap();
+		let expected_hex_account = hex::decode("976f8456e4e2034179b284a23c0e0c8f6d3da50c").unwrap();
+
+		let pair = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
+		let public_key = pair.public();
+
+		let account: MultiSigner = public_key.into();
+		let acc = account.into_account();
+		// acc:5CGhoq2Gx4vyiDDeTLCTRyw9hymToS7ix3tWA8xC3Yi41xae ==> to_ss58check
+		println!("acc:{}", acc);
+		// 0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c (5CGhoq2G...)
+		println!("acc:{:?}", acc);
+		// 0926c7af7ca5a41b6ca9ffde 976f8456e4e2034179b284a23c0e0c8f6d3da50c
+		let acc_hex = hex::encode(acc);
+		println!("hex:{:?}", acc_hex);
+	}
+
+	#[test]
+	fn test_account_derivation_1() {
+		// Test from https://asecuritysite.com/encryption/ethadd
+		let secret_key =
+			hex::decode("502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875")
+				.unwrap();
+		let expected_hex_account = hex::decode("976f8456e4e2034179b284a23c0e0c8f6d3da50c").unwrap();
+		let pair = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
+
+		// Public Key is [u8; 33]
+		let public_key = pair.public();
+
+		// Public Key 转成 32 bytes，并且以地址格式有关 的步骤：
+		// - 先将压缩的PublicKey[32]转成未压缩的PublicKey[64]
+		// - Keccak256::digest(转成未压缩的PublicKey)
+		// - H256::from_slice(digest)
+		let decompressed =
+			// parse_slice 的第一个参数是 public key, 类型为 [u8; 33]
+			// 所以对应第二个参数格式为 Compressed，对应的是 compressed public key, 33
+			// 长度 33 bytes 的 compressed public key 转为 长度 65 bytes 的 Full length Public key
+			// 所以叫做 decompressed。如果是 64 bytes，则叫做 Raw Public key
+			secp256k1::PublicKey::parse_slice(&public_key.0,
+											  Some(secp256k1::PublicKeyFormat::Compressed))
+				.expect("Wrong compressed public key provided")
+				.serialize(); // 序列化方法，返回 [u8;65]
+		let mut m = [0u8; 64];
+		m.copy_from_slice(&decompressed[1..65]);
+
+		// acc_256:0x0926c7af7ca5a41b6ca9ffde 976f8456e4e2034179b284a23c0e0c8f6d3da50c
+		let acc_256 = H256::from_slice(Keccak256::digest(&m).as_slice());
+		println!("acc_256:{:?}", acc_256);
+		let account = H160::from(acc_256);
+		println!("acc_160:{:?}", account);
+
+		// 换成 blake2_256
+		// 0e7f0ab21501c65d49b1388c283fdf1b2fbae75b0186cccad68a1080dd3312f0
+		let h1 = sp_core::hashing::blake2_256(&m);
+		let h1 = hex::encode(h1);
+		println!("h1:{}", h1);
+
+		let h2 = sp_io::hashing::blake2_256(&m);
+		let h2 = hex::encode(h2);
+		println!("h2:{}", h2);
+		// assert_eq!(h1, h2);
+		// assert_ne!(h1, acc_256);
+	}
+
+	#[test]
+	fn test_signature_sign_verify() {
+		// Test from https://asecuritysite.com/encryption/ethadd
+		let expected_hex_account = hex::decode("976f8456e4e2034179b284a23c0e0c8f6d3da50c").unwrap();
+
+		let secret_key =
+			hex::decode("502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875")
+				.unwrap();
+		let pair = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
+		let public_key = pair.public();
+
+		// 签名
+		let msg = &b"test-message"[..];
+		let signature = pair.sign(&msg);
+		// 验证签名
+		// 验证过程中，从签名进行恢复出来的实际pubkey，经过serialize_compressed后，也刚好是33bytes
+		// 比较实际pubkey.serialize_compressed == 传入的public_key，相等则验证通过
+		assert!(ecdsa2::Pair2::verify(&signature, msg, &public_key));
+	}
+
+	#[test]
+	fn multi_signature_two_types_comp() {
+		let msg = &b"test-message"[..];
+		// let (pair, _) = ecdsa::Pair::generate();
+		// let (pair2, _) = ecdsa2::Pair2::generate();
+
+		// ecdsa exist in substrate already
+		// ethereum signature use ecdsa2 which copy from ecdsa
+
+		let secret_key =
+			hex::decode("502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875")
+				.unwrap();
+		let pair = ecdsa::Pair::from_seed_slice(&secret_key).unwrap();
+		let pair2 = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
+
+		let signature = pair.sign(&msg);
+		assert!(ecdsa::Pair::verify(&signature, msg, &pair.public()));
+
+		let signature2 = pair2.sign(&msg);
+		assert!(ecdsa2::Pair2::verify(&signature2, msg, &pair2.public()));
+
+		let multi_sig = MultiSignature::from(signature);
+		let multi_signer = MultiSigner::from(pair.public());
+		// println!("multi_signer1 signer :{}", multi_signer.clone());
+		// 7b678f9d2e94b7ea0aee59313ae4971499383d5767ad8a3d5fdc30f2b776bafa
+		println!("multi_signer1 account:{:?}", &multi_signer.into_account());
+
+		let multi_sig2 = MultiSignature::from(signature2);
+		let multi_signer2 = MultiSigner::from(pair2.public());
+		// println!("multi_signer2 signer :{}", multi_signer2.clone());
+		// 0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c
+		println!("multi_signer2 account:{:?}", multi_signer2.into_account());
+	}
+
+	#[test]
+	fn test_account_gen_messages() {
+		use std::convert::TryInto;
+
+		let expected_hex_account = hex::decode(
+			"0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c").unwrap();
+		let secret_key =
+			hex::decode("502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875")
+				.unwrap();
+		let pair = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
+		let decompressed = secp256k1::PublicKey::parse_slice(&pair.public().0, Some(secp256k1::PublicKeyFormat::Compressed))
+				.expect("Wrong compressed public key provided").serialize(); // 序列化方法，返回 [u8;65]
+		let mut m = [0u8; 64];
+		m.copy_from_slice(&decompressed[1..65]);
+		let acc_256 = H256::from_slice(Keccak256::digest(&m).as_slice());
+		println!("pubAddr:{:?}", acc_256);
+
+		// 对任意消息进行签名
+		//   BlakeTwo256: 0x0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c
+		//   blake2_256(&): 0x0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c
+		// let test_message = [100u8; 1];
+		// let test_message = [100u8; 32]; // OK: BlakeTwo256
+
+		// b"" -> &[u8; XXX]，只能使用 test_message，使用 & 会报错：expected slice `[u8]`, found `&[u8; 12]`
+		//   expected reference `&[u8]` found reference `&&[u8; 12]`
+		//   BlakeTwo256:
+		//   blake2_256:
+		// let test_message = b"test-message";
+		// let signature: [u8; 65] = pair.sign(test_message).0;
+
+		// 字符串转成&[u8]:
+		//   BlakeTwo256: 0xc25994d96143831213a99e01ba402dc510ffe01e59feb53775be16184b570e14
+		//   blake2_256:  0x0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c
+		//   keccak_256:  0x9fa7277ed8c17709bef5c827301011460abe6ddea878ef45a8e071d4e042c258
+		// let test_message = "test-message".as_bytes();
+
+		// byte-string:
+		//   BlakeTwo256: 0xc25994d96143831213a99e01ba402dc510ffe01e59feb53775be16184b570e14
+		//   blake2_256:  0x0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c
+		//   &b""[..] -> &[u8],	  可以使用 &test_message, 或者 test_message
+		let test_message = &b"test-message"[..];
+
+		// let signature: [u8; 65] = pair.sign(&test_message).as_ref().try_into().ok()?;
+		let signature: [u8; 65] = pair.sign(&test_message).0;
+
+		let pubkey = sp_io::crypto::secp256k1_ecdsa_recover(
+			&signature,
+			// BlakeTwo256::hash_of(&test_message).as_fixed_bytes(),
+			&sp_io::hashing::blake2_256(&test_message),
+		);
+		match pubkey {
+			Ok(pubkey) => {
+				let account = H256::from_slice(Keccak256::digest(&pubkey).as_slice());
+				println!("account:{:?}", account);
+
+				let k2 = hex::encode(sp_io::hashing::keccak_256(pubkey.as_ref()));
+				println!("keccak :{:?}", k2);
+			}
+			Err(_) => {}
+		}
+	}
+
+	#[test]
+	fn test_spio_verify_pubkey() {
+		let msg = &b"test-message"[..];
+		let expected_hex_account = hex::decode("0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c").unwrap();
+		let secret_key =
+			hex::decode("502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875").unwrap();
+		let pair2 = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
+
+		// 签名与验证签名
+		let signature2 = pair2.sign(&msg);
+		assert!(ecdsa2::Pair2::verify(&signature2, msg, &pair2.public()));
+
+		// 直接从 PublicKey 导出账户地址
+		let multi_signer = MultiSigner::from(pair2.public());
+		let who = multi_signer.into_account();
+		println!("who:{:?}", who);
+
+		match sp_io::crypto::secp256k1_ecdsa_recover(
+			// &signature2.0,
+			signature2.as_ref(),
+			&sp_io::hashing::blake2_256(&msg)) {
+			Ok(pubkey) => {
+				// 得到pubkey后，只能使用kec: Keccak256::digest 或者 keccak_256 都可以解析出账户地址
+				// 0x0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c
+				let k1 = H256::from_slice(Keccak256::digest(&pubkey).as_slice());
+				println!("acc:{:?}", k1);
+				// 0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c
+				let k2 = hex::encode(sp_io::hashing::keccak_256(pubkey.as_ref()));
+				println!("kec:{:?}", k2);
+				// 0e7f0ab21501c65d49b1388c283fdf1b2fbae75b0186cccad68a1080dd3312f0
+				let k3 = hex::encode(sp_io::hashing::blake2_256(pubkey.as_ref()));
+				println!("blk:{:?}", k3);
+			}
+			_ => {
+			},
+		};
+	}
+
+	#[test]
+	fn test_spio_verify_pubkey_signature() {
+		let msg = &b"test-message"[..];
+		let expected_hex_account = hex::decode("0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c").unwrap();
+		let secret_key =
+			hex::decode("502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875").unwrap();
+		let pair2 = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
+
+		// 签名与验证签名
+		let signature = pair2.sign(&msg);
+		assert!(ecdsa2::Pair2::verify(&signature, msg, &pair2.public()));
+
+		// 直接从 PublicKey 导出账户地址
+		let multi_signer = MultiSigner::from(pair2.public());
+		// let who = &multi_signer.into_account();
+		// println!("account:{:?}", who);
+
+		// MultiSignature 验签
+		let multi_sig = MultiSignature::from(signature);
+		let result = multi_sig.verify(msg, &multi_signer.into_account());
+		assert_eq!(result, true);
 	}
 
 	#[test]

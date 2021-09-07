@@ -208,6 +208,8 @@ where
 			return None
 		}
 
+		log::info!("AuthoritySet:{:?}", authorities);
+
 		Some(AuthoritySet {
 			current_authorities: authorities,
 			set_id,

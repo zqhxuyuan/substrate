@@ -89,6 +89,7 @@ where
 		backend: Arc<B>,
 		shared_authority_set: Option<SharedAuthoritySet<Block::Hash, NumberFor<Block>>>,
 	) -> Arc<Self> {
+		log::info!("new_for_service");
 		Arc::new(Self::new(backend, shared_authority_set))
 	}
 }
@@ -104,6 +105,7 @@ where
 		&self,
 		block: NumberFor<Block>,
 	) -> Result<Option<Vec<u8>>, FinalityProofError> {
+		log::info!("prove_finality...");
 		let authority_set_changes = if let Some(changes) = self
 			.shared_authority_set
 			.as_ref()

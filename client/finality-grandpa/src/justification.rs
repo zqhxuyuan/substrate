@@ -122,8 +122,10 @@ impl<Block: BlockT> GrandpaJustification<Block> {
 	where
 		NumberFor<Block>: finality_grandpa::BlockNumberOps,
 	{
+		log::info!("grandpa verify authorities:{:?}", authorities.clone());
 		let voters = VoterSet::new(authorities.iter().cloned())
 			.ok_or(ClientError::Consensus(sp_consensus::Error::InvalidAuthoritiesSet))?;
+		log::info!("voters:{:?}", voters);
 
 		self.verify_with_voter_set(set_id, &voters)
 	}

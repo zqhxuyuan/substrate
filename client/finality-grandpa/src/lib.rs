@@ -881,6 +881,7 @@ where
 		};
 
 		let voters = persistent_data.authority_set.current_authorities();
+		log::info!("voters:{:?}", voters);
 		let env = Arc::new(Environment {
 			client,
 			select_chain,
@@ -951,6 +952,7 @@ where
 
 		match &*self.env.voter_set_state.read() {
 			VoterSetState::Live { completed_rounds, .. } => {
+				log::info!("VoterSetState is Live: {:?}", completed_rounds);
 				let last_finalized = (chain_info.finalized_hash, chain_info.finalized_number);
 
 				let global_comms = global_communication(

@@ -59,6 +59,7 @@ pub mod u32_trait;
 
 mod changes_trie;
 pub mod ecdsa;
+pub mod ecdsa2;
 pub mod ed25519;
 pub mod hash;
 #[cfg(feature = "std")]

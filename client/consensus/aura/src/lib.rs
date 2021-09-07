@@ -79,6 +79,9 @@ pub use sp_consensus_aura::{
 	AuraApi, ConsensusLog, AURA_ENGINE_ID,
 };
 use std::collections::HashMap;
+use sp_runtime::traits::{BlakeTwo256, Hash as SpHash};
+use std::hash::Hasher;
+use std::collections::hash_map::DefaultHasher;
 
 type AuthorityId<P> = <P as Pair>::Public;
 
@@ -95,6 +98,20 @@ where
 	C::Api: AuraApi<B, A, D>,
 {
 	SlotDuration::get_or_compute(client, |a, b| a.slot_duration(b).map_err(Into::into))
+}
+
+struct SlotHash {
+	total: u64
+}
+impl Hash for SlotHash {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.total.hash(state);
+	}
+}
+fn calculate_hash<T: Hash>(t: &T) -> u64 {
+	let mut s = DefaultHasher::new();
+	t.hash(&mut s);
+	s.finish()
 }
 
 /// Get slot author for given block along with authorities.
@@ -137,16 +154,22 @@ fn slot_author<P: Pair>(weights: Option<Vec<u64>>, slot: Slot, authorities: &[Au
 					}
 				}
 
-				let idx = *slot % (total_weight as u64);
+				let hash_base = *slot + total_weight;
+				let hash_result = calculate_hash(&SlotHash {
+					total: hash_base
+				});
+
+				let idx = hash_result % (total_weight as u64);
 				assert!(
 					idx <= usize::MAX as u64,
 					"It is impossible to have a vector with length beyond the address space; qed",
 				);
 				let inner_idx = slot_index_map.get(&idx).expect("").clone();
-				log::info!("found idx:{} and inner idx:{}", idx, inner_idx);
+				log::info!("cal_idx:{},real_idx:{}", idx, inner_idx);
 				let current_author = authorities.get(inner_idx as usize).expect(
 					"authorities not empty; index constrained to list length;this is a valid index; qed",
 				);
+				// log::info!("aura author key: {}", current_author);
 				return Some(current_author)
 			}
 		}

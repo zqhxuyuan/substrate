@@ -202,6 +202,7 @@ impl<Block: BlockT> WarpSyncProof<Block> {
 		let mut current_authorities = authorities;
 
 		for (fragment_num, proof) in self.proofs.iter().enumerate() {
+			log::info!("warp proof verify");
 			proof
 				.justification
 				.verify(current_set_id, &current_authorities)
