@@ -7,7 +7,11 @@ use sp_runtime::transaction_validity::InvalidTransaction;
 use frame_support::pallet_prelude::ValidTransaction;
 
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
-pub struct AccountExtension<T: Config + Send + Sync>(T::AccountId);
+pub struct AccountExtension<T: Config + Send + Sync>(
+    // T::AccountId
+    Option<u32>,
+    sp_std::marker::PhantomData<T>
+);
 
 impl<T: Config + Send + Sync> sp_std::fmt::Debug for AccountExtension<T> {
     #[cfg(feature = "std")]
@@ -24,19 +28,21 @@ impl<T: Config + Send + Sync> sp_std::fmt::Debug for AccountExtension<T> {
 impl<T: Config + Send + Sync> AccountExtension<T> {
     /// Create new `SignedExtension` to check runtime version.
     pub fn new() -> Self {
-        Self(Default::default())
+        Self(
+            None, Default::default()
+        )
     }
 }
 
 impl<T: Config + Send + Sync> SignedExtension for AccountExtension<T> {
     type AccountId = T::AccountId;
     type Call = T::Call;
-    type AdditionalSigned = ();
+    type AdditionalSigned = Option<u32>;
     type Pre = ();
     const IDENTIFIER: &'static str = "CheckAccount";
 
     fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
-        Ok(())
+        Ok(self.0)
     }
 
     fn validate(

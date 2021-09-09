@@ -18,12 +18,25 @@ mod benchmarking;
 pub mod pallet {
 	use frame_support::{dispatch::DispatchResult, pallet_prelude::*};
 	use frame_system::pallet_prelude::*;
+	// use sp_runtime::traits::AtLeast32BitUnsigned;
+	// use sp_core::sp_std::fmt::Debug;
+	use codec::{Codec, Decode, Encode, MaxEncodedLen};
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
+
+		// type Balance: Parameter
+		// 	+ Member
+		// 	+ AtLeast32BitUnsigned
+		// 	+ Codec
+		// 	+ Default
+		// 	+ Copy
+		// 	+ MaybeSerializeDeserialize
+		// 	+ Debug
+		// 	+ MaxEncodedLen;
 	}
 
 	#[pallet::pallet]
@@ -77,6 +90,39 @@ pub mod pallet {
 
 			// Emit an event.
 			Self::deposit_event(Event::SomethingStored(something, who));
+			// Return a successful DispatchResultWithPostInfo
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn do_something0(origin: OriginFor<T>) -> DispatchResult {
+			// Check that the extrinsic was signed and get the signer.
+			// This function will return an error if the extrinsic is not signed.
+			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
+			let _ = ensure_signed(origin)?;
+
+			// Update storage.
+			// <Something<T>>::put(something);
+
+			// Emit an event.
+			// Self::deposit_event(Event::SomethingStored(something, who));
+			// Return a successful DispatchResultWithPostInfo
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn do_something1(origin: OriginFor<T>,
+							 accountId: Option<u32>) -> DispatchResult {
+			// Check that the extrinsic was signed and get the signer.
+			// This function will return an error if the extrinsic is not signed.
+			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
+			let _ = ensure_signed(origin)?;
+
+			// Update storage.
+			// <Something<T>>::put(something);
+
+			// Emit an event.
+			// Self::deposit_event(Event::SomethingStored(something, who));
 			// Return a successful DispatchResultWithPostInfo
 			Ok(())
 		}

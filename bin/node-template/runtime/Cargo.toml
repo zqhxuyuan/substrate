@@ -48,6 +48,7 @@ hex-literal = { version = "0.3.1", optional = true }
 pallet-template = { version = "3.0.0", default-features = false, path = "../pallets/template" }
 pallet-utility = { version = "4.0.0-dev", default-features = false, path = "../../../frame/utility" }
 pallet-authorship = { version = "4.0.0-dev", default-features = false, path = "../../../frame/authorship" }
+module-accounts = { version = "4.0.0-dev", default-features = false, path = "../../../frame/accounts" }
 
 [build-dependencies]
 substrate-wasm-builder = { version = "5.0.0-dev", path = "../../../utils/wasm-builder" }
@@ -82,6 +83,7 @@ std = [
 	"sp-std/std",
 	"sp-transaction-pool/std",
 	"sp-version/std",
+	"module-accounts/std",
 ]
 runtime-benchmarks = [
 	"frame-benchmarking",

@@ -269,6 +269,7 @@ impl pallet_sudo::Config for Runtime {
 /// Configure the pallet-template in pallets/template.
 impl pallet_template::Config for Runtime {
 	type Event = Event;
+	// type Balance = Balance;
 }
 impl pallet_utility::Config for Runtime {
 	type Event = Event;
@@ -283,6 +284,21 @@ impl pallet_authorship::Config for Runtime {
 	type UncleGenerations = UncleGenerations;
 	type FilterUncle = ();
 	type EventHandler = ();
+}
+parameter_types! {
+	pub const MaxPermission: u32 = 50;
+	pub const MaxAuth: u32 = 50;
+	pub const MaxOthers: u32 = 50;
+	pub const KeyLimit: u32 = 10;
+}
+impl module_accounts::Config for Runtime {
+	type Event = Event;
+	// type Call = Call;
+	type MaxPermission = MaxPermission;
+	type MaxAuth = MaxAuth;
+	type MaxOthers = MaxOthers;
+	// type VarNameType = [u8; 10];
+	type KeyLimit = KeyLimit;
 }
 // Create the runtime by composing the FRAME pallets that were previously configured.
 construct_runtime!(
@@ -303,6 +319,7 @@ construct_runtime!(
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
 		// Include the custom logic from the pallet-template in the runtime.
 		TemplateModule: pallet_template::{Pallet, Call, Storage, Event<T>},
+		Accounts: module_accounts::{Pallet, Call, Storage, Event<T>},
 	}
 );
 
@@ -321,6 +338,7 @@ pub type SignedExtra = (
 	frame_system::CheckNonce<Runtime>,
 	frame_system::CheckWeight<Runtime>,
 	pallet_transaction_payment::ChargeTransactionPayment<Runtime>,
+	module_accounts::AccountExtension<Runtime>,
 );
 /// Unchecked extrinsic type as expected by this runtime.
 pub type UncheckedExtrinsic = generic::UncheckedExtrinsic<Address, Call, Signature, SignedExtra>;

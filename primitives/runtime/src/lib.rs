@@ -1321,6 +1321,9 @@ mod tests {
 		// 01e552298e47454041ea31273b4b630c64c104e4514aa3643490b8aaca9cf8ed (5C7C2Z5s...)
 		let alice3: MultiSigner = get_from_seed_pair::<ecdsa::Public>("Alice").public().into();
 		print_info(alice3);
+		// 80280ca34c7ad2f3e1642606e04cc55ebee1cbce552f250e85c57b70b2e2625b (5ExjtCWm...)
+		let alice3: MultiSigner = get_from_seed_pair::<ecdsa2::Public2>("Alice").public().into();
+		print_info(alice3);
 		println!();
 
 		// 不能用上面打印的来作为 secret_key，并验证最后生成的地址是否一致！

@@ -21,7 +21,7 @@ use crate::{
 	generic::CheckedExtrinsic,
 	traits::{
 		self, Checkable, Extrinsic, ExtrinsicMetadata, IdentifyAccount, MaybeDisplay, Member,
-		SignedExtension,
+		SignedExtension, Hash
 	},
 	transaction_validity::{InvalidTransaction, TransactionValidityError},
 	OpaqueExtrinsic,
@@ -29,6 +29,7 @@ use crate::{
 use codec::{Decode, Encode, EncodeLike, Error, Input};
 use sp_io::hashing::blake2_256;
 use sp_std::{fmt, prelude::*};
+use crate::traits::BlakeTwo256;
 
 /// Current version of the [`UncheckedExtrinsic`] format.
 const EXTRINSIC_VERSION: u8 = 4;
@@ -108,11 +109,17 @@ where
 	type Checked = CheckedExtrinsic<AccountId, Call, Extra>;
 
 	fn check(self, lookup: &Lookup) -> Result<Self::Checked, TransactionValidityError> {
+		log::info!("UncheckedExtrinsic:{:?}", self);
 		Ok(match self.signature {
 			Some((signed, signature, extra)) => {
 				let signed = lookup.lookup(signed)?;
 				let raw_payload = SignedPayload::new(self.function, extra)?;
-				if !raw_payload.using_encoded(|payload| signature.verify(payload, &signed)) {
+				if !raw_payload.using_encoded(|payload| {
+					// log::info!("payload:{}", hex::encode(payload));
+					// log::info!("payload:{:?}", blake2_256(payload));
+					log::info!("payload:{:?}", BlakeTwo256::hash_of(&payload).as_fixed_bytes());
+					signature.verify(payload, &signed)
+				}) {
 					return Err(InvalidTransaction::BadProof.into())
 				}
 
