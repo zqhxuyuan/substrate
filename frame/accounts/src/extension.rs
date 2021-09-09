@@ -9,7 +9,7 @@ use frame_support::pallet_prelude::ValidTransaction;
 #[derive(Encode, Decode, Clone, Eq, PartialEq)]
 pub struct AccountExtension<T: Config + Send + Sync>(
     // T::AccountId
-    Option<u32>,
+    u32,
     sp_std::marker::PhantomData<T>
 );
 
@@ -29,7 +29,7 @@ impl<T: Config + Send + Sync> AccountExtension<T> {
     /// Create new `SignedExtension` to check runtime version.
     pub fn new() -> Self {
         Self(
-            None, Default::default()
+            0, Default::default()
         )
     }
 }
@@ -37,7 +37,7 @@ impl<T: Config + Send + Sync> AccountExtension<T> {
 impl<T: Config + Send + Sync> SignedExtension for AccountExtension<T> {
     type AccountId = T::AccountId;
     type Call = T::Call;
-    type AdditionalSigned = Option<u32>;
+    type AdditionalSigned = u32;
     type Pre = ();
     const IDENTIFIER: &'static str = "CheckAccount";
 

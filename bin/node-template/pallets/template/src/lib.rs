@@ -112,7 +112,8 @@ pub mod pallet {
 
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn do_something1(origin: OriginFor<T>,
-							 accountId: Option<u32>) -> DispatchResult {
+							 // accountId: u32
+		) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			// This function will return an error if the extrinsic is not signed.
 			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
