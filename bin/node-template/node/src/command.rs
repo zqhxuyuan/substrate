@@ -23,6 +23,7 @@ use crate::{
 use node_template_runtime::Block;
 use sc_cli::{ChainSpec, Role, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
+use sp_core::{sr25519, Pair, Public, ed25519, ecdsa2, ecdsa};
 
 impl SubstrateCli for Cli {
 	fn impl_name() -> String {
@@ -51,7 +52,10 @@ impl SubstrateCli for Cli {
 
 	fn load_spec(&self, id: &str) -> Result<Box<dyn sc_service::ChainSpec>, String> {
 		Ok(match id {
-			"dev" => Box::new(chain_spec::development_config()?),
+			"dev" => Box::new(chain_spec::development_config::<sr25519::Public>()?),
+			"dev-ed25519" => Box::new(chain_spec::development_config::<ed25519::Public>()?),
+			"dev-ecdsa" => Box::new(chain_spec::development_config::<ecdsa::Public>()?),
+			"dev-ecdsa2" => Box::new(chain_spec::development_config::<ecdsa2::Public2>()?),
 			"" | "local" => Box::new(chain_spec::local_testnet_config()?),
 			path =>
 				Box::new(chain_spec::ChainSpec::from_json_file(std::path::PathBuf::from(path))?),

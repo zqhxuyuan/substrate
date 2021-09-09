@@ -1,3 +1,9 @@
+use codec::{Decode, Encode};
+#[cfg(feature = "std")]
+#[doc(hidden)]
+pub use serde;
+pub use sp_core::RuntimeDebug;
+
 use sp_core::{crypto::{self, Public}, ecdsa, ecdsa2, ed25519, hash::{H256, H512}, sr25519, H160};
 use sp_std::{convert::TryFrom, prelude::*};
 /// Re-export big_uint stuff.
@@ -10,6 +16,7 @@ pub use sp_arithmetic::{
     FixedU128, InnerOf, PerThing, PerU16, Perbill, Percent, Permill, Perquintill, Rational128,
     UpperOf,
 };
+use sha3::{Keccak256, Digest as ShaDigest};
 
 /// Signature verify that can work with any known signature types..
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -93,5 +100,22 @@ impl TryFrom<MultiSignature> for ecdsa2::Signature2 {
 impl Default for MultiSignature {
     fn default() -> Self {
         Self::Ed25519(Default::default())
+    }
+}
+
+/// Signature verify that can work with any known signature types..
+#[derive(Eq, PartialEq, Clone, Default, Encode, Decode, RuntimeDebug)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
+pub struct AnySignature(pub H512);
+
+impl From<sr25519::Signature> for AnySignature {
+    fn from(s: sr25519::Signature) -> Self {
+        Self(s.into())
+    }
+}
+
+impl From<ed25519::Signature> for AnySignature {
+    fn from(s: ed25519::Signature) -> Self {
+        Self(s.into())
     }
 }

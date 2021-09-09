@@ -56,8 +56,12 @@ mod runtime_string;
 pub mod testing;
 pub mod traits;
 pub mod transaction_validity;
+// #[cfg(feature = "std")]
 // mod signature;
+// #[cfg(feature = "std")]
 // mod signer;
+// pub use crate::signature::*;
+// pub use crate::signer::*;
 
 pub use crate::runtime_string::*;
 
@@ -501,14 +505,12 @@ impl Verify for MultiSignature {
 				    &sp_io::hashing::blake2_256(msg.get())
 				) {
 					Ok(pubkey) => {
-						H256::from_slice(Keccak256::digest(&pubkey).as_slice()) == H256::from_slice(who.as_ref())
-						// let h256_1 = H256::from_slice(Keccak256::digest(&pubkey).as_slice());
-						// let h256_2 = H256::from_slice(who.as_ref());
-						// log::info!("who:{:?}, pubkey:{:?}", who, pubkey);
-						// log::info!("h256_pub:{}, h256_who:{}", h256_1, h256_2);
-						// h256_1 == h256_2
+						H256::from_slice(Keccak256::digest(&pubkey).as_slice())
+							== H256::from_slice(who.as_ref())
 					}
-					Err(sp_io::EcdsaVerifyError::BadRS) | Err(sp_io::EcdsaVerifyError::BadV) | Err(sp_io::EcdsaVerifyError::BadSignature) => {
+					Err(sp_io::EcdsaVerifyError::BadRS) |
+					Err(sp_io::EcdsaVerifyError::BadV) |
+					Err(sp_io::EcdsaVerifyError::BadSignature) => {
 						log::error!(target: "evm", "Error recovering");
 						false
 					}
@@ -521,7 +523,19 @@ impl Verify for MultiSignature {
 /// Signature verify that can work with any known signature types..
 #[derive(Eq, PartialEq, Clone, Default, Encode, Decode, RuntimeDebug)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct AnySignature(H512);
+pub struct AnySignature(pub H512);
+
+impl From<sr25519::Signature> for AnySignature {
+	fn from(s: sr25519::Signature) -> Self {
+		Self(s.into())
+	}
+}
+
+impl From<ed25519::Signature> for AnySignature {
+	fn from(s: ed25519::Signature) -> Self {
+		Self(s.into())
+	}
+}
 
 impl Verify for AnySignature {
 	type Signer = sr25519::Public;
@@ -533,18 +547,6 @@ impl Verify for AnySignature {
 			ed25519::Signature::try_from(self.0.as_fixed_bytes().as_ref())
 				.map(|s| s.verify(msg, &ed25519::Public::from_slice(signer.as_ref())))
 				.unwrap_or(false)
-	}
-}
-
-impl From<sr25519::Signature> for AnySignature {
-	fn from(s: sr25519::Signature) -> Self {
-		Self(s.into())
-	}
-}
-
-impl From<ed25519::Signature> for AnySignature {
-	fn from(s: ed25519::Signature) -> Self {
-		Self(s.into())
 	}
 }
 
@@ -1185,6 +1187,16 @@ mod tests {
 		};
 	}
 
+	fn mock_pair() -> (ecdsa2::Pair2, Vec<u8>) {
+		let secret_key =
+			hex::decode("502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875")
+				.unwrap();
+		let expected_hex_account = hex::decode("976f8456e4e2034179b284a23c0e0c8f6d3da50c").unwrap();
+
+		let pair = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
+		(pair, expected_hex_account)
+	}
+
 	#[test]
 	fn test_account_derivation_2() {
 		// Test from https://asecuritysite.com/encryption/ethadd
@@ -1205,6 +1217,139 @@ mod tests {
 		// 0926c7af7ca5a41b6ca9ffde 976f8456e4e2034179b284a23c0e0c8f6d3da50c
 		let acc_hex = hex::encode(acc);
 		println!("hex:{:?}", acc_hex);
+	}
+
+	// 0926c7af7ca5a41b6ca9ffde 976f8456e4e2034179b284a23c0e0c8f6d3da50c
+	// acc:0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c (5CGhoq2G...)
+	// acc:17fe7561a96b5005c606028ef24ff3a9cf04c71dbc94d0b566f7a27b94566cac (5CcAYmLQ...)
+	// acc:b4764bb2678e50431a87d7273cd0a705a2dc65e5b1e1205896baa2be8a07c6e0 (5G9KcmkW...)
+	// acc:0673e488ea89e48bd6fe656f798d4ba9baf0064ec19eb4f0a1a45785ae9d6dfc (5CDAa7mt...)
+	// acc:e78b67b7f8a7cc2bda83a45d773539d4ac0e786233d90a233654ccee26a613d9 (5HJJL85Y...)
+	// acc:53ea0d19c73a382eaaf8988bff64d3f6efe2317ee2807d223a0bdc4c0c49dfdb (5DxjMnyq...)
+	// acc:d1d120e2712d174059b1536ec0f0f4ab324c46e55d02d0033343b4be8a55532d (5GoozKtj...)
+	// acc:422673dd5ceb426b0bd748897bf369283338e12c90514468aa3868a551ab2929 (5DZSSVcn...)
+	// acc:b2fa19e6cf29e781ca16f575931f3600a299fd9b24cefb3bff79388d19804bea (5G7NgB1d...)
+	// acc:04b5fadeeb343abeaec18b2ac41c5f1123eccd5ce233578b2e7ebd5693869d73 (5CAt7Dhc...)
+	// acc:d1e53b49485c566f6cca44092898fe7a42be376c8bc7af536a940f7fd5add423 (5GouxhHh...)
+	#[test]
+	fn test_prefound_keys() {
+		let vec = vec![
+			"502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875",
+			"5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133",
+			"8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b",
+			"0b6e18cafb6ed99687ec547bd28139cafdd2bffe70e6b688025de6b445aa5c5b",
+			"39539ab1876910bbf3a223d84a29e28f1cb4e2e456503e7e91ed39b2e7223d68",
+			"7dce9bc8babb68fec1409be38c8e1a52650206a7ed90ff956ae8a6d15eeaaef4",
+			"b9d2ea9a615f3165812e8d44de0d24da9bbd164b65c4f0573e1ce2c8dbd9c8df",
+			"96b8a38e12e1a31dee1eab2fffdf9d9990045f5b37e44d8cc27766ef294acf18",
+			"0d6dcaaef49272a5411896be8ad16c01c35d6f8c18873387b71fbc734759b0ab",
+			"4c42532034540267bf568198ccec4cb822a025da542861fcb146a5fab6433ff8",
+			"94c49300a58d576011096bcb006aa06f5a91b34b4383891e8029c21dc39fbb8b",
+		];
+		for sk in vec {
+			let secret_key = hex::decode(sk).unwrap();
+			let pair = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
+			let public_key = pair.public();
+
+			let account: MultiSigner = public_key.into();
+			let acc = account.into_account();
+			println!("acc:{:?}", acc);
+		}
+
+	}
+
+	pub fn get_from_seed_pair<TPublic: Public>(seed: &str) -> TPublic::Pair {
+		TPublic::Pair::from_string(&format!("//{}", seed), None)
+			.expect("static values are valid; qed")
+	}
+
+	// Alice: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+	// account:Alice
+	//  acc_sr25519:d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d (5GrwvaEF...)
+	//  acc_ed25519:88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee (5FA9nQDV...)
+	//  acc_ethereum:80280ca34c7ad2f3e1642606e04cc55ebee1cbce552f250e85c57b70b2e2625b (5ExjtCWm...)
+	//  acc_ecdsa:01e552298e47454041ea31273b4b630c64c104e4514aa3643490b8aaca9cf8ed (5C7C2Z5s...)
+	// account:Bob
+	//  acc_sr25519:8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48 (5FHneW46...)
+	//  acc_ed25519:d17c2d7823ebf260fd138f2d7e27d114c0145d968b5ff5006125f2414fadae69 (5GoNkf6W...)
+	//  acc_ethereum:43127f1db08048ca8da5277825451a4de12dccc2d166922fa938e900fcc4ed24 (5DaeZSHd...)
+	//  acc_ecdsa:3f6eaf1be5add88d84ca8b02d350074935dbf04f53f4287cb6abfd6b33413f8f (5DVskgSC...)
+	#[test]
+	fn test_pair_generate() {
+		let accounts = vec!["Alice", "Bob"];
+		for account in accounts {
+			let pair1 = get_from_seed_pair::<sr25519::Public>(account);
+			let pair2 = get_from_seed_pair::<ed25519::Public>(account);
+			let pair3 = get_from_seed_pair::<ecdsa2::Public2>(account);
+			let pair4 = get_from_seed_pair::<ecdsa::Public>(account);
+
+			println!("account:{}", account);
+			let public_key1 = pair1.public();
+			let account: MultiSigner = public_key1.into();
+			let acc = account.into_account();
+			println!(" acc_sr25519:{:?}", acc);
+
+			let public_key2 = pair2.public();
+			let account: MultiSigner = public_key2.into();
+			let acc = account.into_account();
+			println!(" acc_ed25519:{:?}", acc);
+
+			let public_key3 = pair3.public();
+			let account: MultiSigner = public_key3.into();
+			let acc = account.into_account();
+			println!(" acc_ethereum:{:?}", acc);
+
+			let public_key4 = pair4.public();
+			let account: MultiSigner = public_key4.into();
+			let acc = account.into_account();
+			println!(" acc_ecdsa:{:?}", acc);
+		}
+	}
+
+	// use keyring::AccountKeyring;
+	// use keyring::Ed25519Keyring;
+
+	#[test]
+	fn test_key_pair() {
+		// d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d (5GrwvaEF...)
+		// 88dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee (5FA9nQDV...)
+		// let alice1: MultiSigner = AccountKeyring::Alice.pair().public().into();
+		// let alice2: MultiSigner = Ed25519Keyring::Alice.pair().public().into();
+		// print_info(alice1);
+		// print_info(alice2);
+
+		// 01e552298e47454041ea31273b4b630c64c104e4514aa3643490b8aaca9cf8ed (5C7C2Z5s...)
+		let alice3: MultiSigner = get_from_seed_pair::<ecdsa::Public>("Alice").public().into();
+		print_info(alice3);
+		println!();
+
+		// 不能用上面打印的来作为 secret_key，并验证最后生成的地址是否一致！
+		// 4afa5b7b13cabc96fe93321322c39f0c6e15cd15145c0decb2968c7bae0b0ae8 (5Dm1mkFh...)
+		// let secret_key = hex::decode(
+		// 	"01e552298e47454041ea31273b4b630c64c104e4514aa3643490b8aaca9cf8ed").unwrap();
+		// let alice = ecdsa::Pair::from_seed_slice(&secret_key).unwrap();
+		// let alice = alice.public().into();
+		// print_info(alice);
+
+		// ecdsa with-out btc/ethereum compatible
+		// 7b678f9d2e94b7ea0aee59313ae4971499383d5767ad8a3d5fdc30f2b776bafa (5ErWWbKi...)
+		let secret_key = hex::decode(
+			"502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875").unwrap();
+		let alice = ecdsa::Pair::from_seed_slice(&secret_key).unwrap();
+		let alice = alice.public().into();
+		print_info(alice);
+
+		// ecdsa2 with ethereum compatible
+		// 0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c (5CGhoq2G...) ✅
+		let secret_key = hex::decode(
+			"502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875").unwrap();
+		let alice = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
+		let alice = alice.public().into();
+		print_info(alice);
+	}
+	pub fn print_info(account: MultiSigner) {
+		let acc = account.into_account();
+		println!("{:?}", acc);
 	}
 
 	#[test]
@@ -1411,9 +1556,11 @@ mod tests {
 	#[test]
 	fn test_spio_verify_pubkey_signature() {
 		let msg = &b"test-message"[..];
-		let expected_hex_account = hex::decode("0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c").unwrap();
+		let expected_hex_account = hex::decode(
+			"0926c7af7ca5a41b6ca9ffde976f8456e4e2034179b284a23c0e0c8f6d3da50c").unwrap();
 		let secret_key =
-			hex::decode("502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875").unwrap();
+			// hex::decode("502f97299c472b88754accd412b7c9a6062ef3186fba0c0388365e1edec24875").unwrap();
+			hex::decode("5fb92d6e98884f76de468fa3f6278f8807c48bebc13595d45af5bdc4da702133").unwrap();
 		let pair2 = ecdsa2::Pair2::from_seed_slice(&secret_key).unwrap();
 
 		// 签名与验证签名

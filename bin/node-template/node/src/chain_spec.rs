@@ -4,7 +4,7 @@ use node_template_runtime::{
 };
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{sr25519, Pair, Public, ed25519, ecdsa2, ecdsa};
 use sp_finality_grandpa::AuthorityId as GrandpaId;
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
@@ -21,106 +21,99 @@ pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Pu
 		.public()
 }
 
-type AccountPublic = <Signature as Verify>::Signer;
-
-/// Generate an account ID from seed.
-pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
-where
-	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
-{
-	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
+/// Generate a crypto pair from seed.
+pub fn get_from_seed_pair<TPublic: Public>(seed: &str) -> TPublic::Pair {
+	TPublic::Pair::from_string(&format!("//{}", seed), None)
+		.expect("static values are valid; qed")
 }
+
+type AccountPublic = <Signature as Verify>::Signer;
 
 /// Generate an Aura authority key.
 pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 	(get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
 }
 
-pub fn authority_keys_from_seed_accountId(s: &str, grandpa_weight: u64) -> (AuraId, GrandpaId, AccountId, u64) {
+/// Generate an account ID from seed.
+pub fn get_account_id_from_seed<TPublic: Public>(seed: &str) -> AccountId
+where
+	AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+{
+	let account = AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account();
+    log::info!("account: {}, {:?}", account, account);
+	account
+}
+
+pub fn get_account_id_from_seeds<TPublic: Public>(seeds: Vec<&str>) -> Vec<AccountId>
+	where
+		AccountPublic: From<<TPublic::Pair as Pair>::Public>,
+{
+	seeds.iter().map(|seed|
+		AccountPublic::from(get_from_seed::<TPublic>(*seed)).into_account()
+	).collect::<Vec<AccountId>>()
+}
+
+pub fn authority_keys_from_seed_accountId<TPublic: Public>(s: &str, grandpa_weight: u64) -> (AuraId, GrandpaId, AccountId, u64)
+	where
+		AccountPublic: From<<TPublic::Pair as Pair>::Public>,{
 	(
 		get_from_seed::<AuraId>(s),
 		get_from_seed::<GrandpaId>(s),
-	 	get_account_id_from_seed::<sr25519::Public>(s),
+	 	get_account_id_from_seed::<TPublic>(s),
 		grandpa_weight
 	)
 }
 
-pub fn development_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+pub fn authority_keys_from_seed_accountIds<TPublic: Public>(vec: Vec<(&str, u64)>) -> Vec<(AuraId, GrandpaId, AccountId, u64)>
+	where
+		AccountPublic: From<<TPublic::Pair as Pair>::Public>,{
+	vec.iter().map(|(s, grandpa_weight)|
+		(
+			get_from_seed::<AuraId>(s),
+			get_from_seed::<GrandpaId>(s),
+			get_account_id_from_seed::<TPublic>(s),
+			grandpa_weight.clone()
+		)
+	).collect::<Vec<(AuraId, GrandpaId, AccountId, u64)>>()
+}
 
+pub fn development_config<TPublic: Public>() -> Result<ChainSpec, String>
+	where
+		AccountPublic: From<<TPublic::Pair as Pair>::Public>
+{
+	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 	Ok(ChainSpec::from_genesis(
-		// Name
-		"Development",
-		// ID
-		"dev",
-		ChainType::Development,
+		"Development", "dev", ChainType::Development,
 		move || {
 			testnet_genesis(
 				wasm_binary,
-				// Initial PoA authorities
-				vec![authority_keys_from_seed_accountId("Alice", 1)],
-				// Sudo account
-				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				// Pre-funded accounts
-				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-				],
+				authority_keys_from_seed_accountIds::<TPublic>(vec![("Alice", 1)]),
+				get_account_id_from_seed::<TPublic>("Alice"),
+				get_account_id_from_seeds::<TPublic>(
+					vec!["Alice", "Bob", "Alice//stash", "Bob//stash"]),
 				true,
 			)
 		},
-		// Bootnodes
-		vec![],
-		// Telemetry
-		None,
-		// Protocol ID
-		None,
-		// Properties
-		None,
-		// Extensions
-		None,
+		vec![], None, None, None, None,
 	))
 }
 
+// chain=local
 pub fn local_testnet_config() -> Result<ChainSpec, String> {
 	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
-
 	Ok(ChainSpec::from_genesis(
-		// Name
-		"Local Testnet",
-		// ID
-		"local_testnet",
-		ChainType::Local,
+		"Local Testnet", "local_testnet", ChainType::Local,
 		move || {
 			testnet_genesis(
 				wasm_binary,
-				// Initial PoA authorities
-				vec![
-					authority_keys_from_seed_accountId("Alice", 1),
-					authority_keys_from_seed_accountId("Bob", 2),
-					authority_keys_from_seed_accountId("Charlie", 4),
-					authority_keys_from_seed_accountId("Dave", 8),
-					authority_keys_from_seed_accountId("Eve", 16),
-				],
-				// Sudo account
+				authority_keys_from_seed_accountIds::<sr25519::Public>(vec![
+					("Alice", 1), // ("Bob", 2), ("Charlie", 4), ("Dave", 8), ("Eve", 16)
+				]),
 				get_account_id_from_seed::<sr25519::Public>("Alice"),
-				// Pre-funded accounts
-				vec![
-					get_account_id_from_seed::<sr25519::Public>("Alice"),
-					get_account_id_from_seed::<sr25519::Public>("Bob"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie"),
-					get_account_id_from_seed::<sr25519::Public>("Dave"),
-					get_account_id_from_seed::<sr25519::Public>("Eve"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie"),
-					get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
-					get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
-				],
+				get_account_id_from_seeds::<sr25519::Public>(
+					vec!["Alice", "Bob", "Charlie", "Dave", "Eve", "Ferdie",
+						 "Alice//stash", "Bob//stash", "Charlie//stash",
+						 "Dave//stash", "Eve//stash", "Ferdie//stash"]),
 				true,
 			)
 		},

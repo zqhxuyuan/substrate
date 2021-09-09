@@ -4594,6 +4594,7 @@ dependencies = [
  "frame-benchmarking",
  "frame-benchmarking-cli",
  "jsonrpc-core",
+ "log 0.4.14",
  "node-template-runtime",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",

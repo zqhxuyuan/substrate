@@ -22,6 +22,7 @@ sp-application-crypto = { version = "4.0.0-dev", default-features = false, path 
 sp-arithmetic = { version = "4.0.0-dev", default-features = false, path = "../arithmetic" }
 sp-std = { version = "4.0.0-dev", default-features = false, path = "../std" }
 sp-io = { version = "4.0.0-dev", default-features = false, path = "../io" }
+#sp-keyring = { version = "4.0.0-dev", optional = true, path = "../keyring" }
 log = { version = "0.4.14", default-features = false }
 paste = "1.0"
 rand = { version = "0.7.2", optional = true }
@@ -33,6 +34,10 @@ sha3 = { version = "0.8", default-features = false }
 libsecp256k1 = { version = "0.3.2", default-features = false, features = ["hmac"] }
 #libsecp256k1 = { version = "0.6", default-features = false, features = ["hmac", "static-context"], optional = true }
 hex = { version = "0.4.3", optional = true }
+
+#[dependencies.keyring]
+#package = "sp-keyring"
+#path = "../keyring"
 
 [dev-dependencies]
 serde_json = "1.0.41"
