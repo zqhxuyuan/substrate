@@ -40,11 +40,13 @@ impl<T: Config + Send + Sync> SignedExtension for AccountExtension<T> {
     type AccountId = T::AccountId;
     type Call = T::Call;
     type AdditionalSigned = [u8; 32];
+    // type AdditionalSigned = T::AccountId;
     type Pre = ();
     const IDENTIFIER: &'static str = "CheckAccount";
 
     fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
         Ok(self.0)
+        // Ok(self.0.clone())
     }
 
     fn validate(
