@@ -21,6 +21,8 @@ pub mod pallet {
 	// use sp_runtime::traits::AtLeast32BitUnsigned;
 	// use sp_core::sp_std::fmt::Debug;
 	use codec::{Codec, Decode, Encode, MaxEncodedLen};
+	// use frame_system::RawOrigin;
+	// use frame_support::traits::OriginTrait;
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
 	#[pallet::config]
@@ -37,6 +39,8 @@ pub mod pallet {
 		// 	+ MaybeSerializeDeserialize
 		// 	+ Debug
 		// 	+ MaxEncodedLen;
+
+		type TemplateOrigin: EnsureOrigin<Self::Origin>;
 	}
 
 	#[pallet::pallet]
@@ -84,6 +88,8 @@ pub mod pallet {
 			// This function will return an error if the extrinsic is not signed.
 			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
 			let who = ensure_signed(origin)?;
+			// log::info!("who:{}", who);
+			log::info!("who:{:?}", who);
 
 			// Update storage.
 			<Something<T>>::put(something);
@@ -113,14 +119,36 @@ pub mod pallet {
 		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
 		pub fn do_something1(origin: OriginFor<T>,
 							 // accountId: u32
+							 something: u32
 		) -> DispatchResult {
-			// Check that the extrinsic was signed and get the signer.
-			// This function will return an error if the extrinsic is not signed.
-			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
 			let _ = ensure_signed(origin)?;
 
 			// Update storage.
-			// <Something<T>>::put(something);
+			<Something<T>>::put(something);
+
+			// Emit an event.
+			// Self::deposit_event(Event::SomethingStored(something, who));
+			// Return a successful DispatchResultWithPostInfo
+			Ok(())
+		}
+
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1))]
+		pub fn do_something2(origin: OriginFor<T>,
+							 accountId: T::AccountId,
+							 something: u32
+		) -> DispatchResult {
+			let who = ensure_signed(origin.clone())?;
+			log::info!("account:{:?}", who);
+
+			// let who = ensure_signed2(origin.clone(), accountId)?;
+			// log::info!("account:{:?}", who);
+
+			// this method can't passing dynamic parameter, unless modify EnsureOrigin trait
+			// let account = T::TemplateOrigin::ensure_origin(origin)?;
+			// log::info!("account:{:?}", account);
+
+			// Update storage.
+			<Something<T>>::put(something);
 
 			// Emit an event.
 			// Self::deposit_event(Event::SomethingStored(something, who));

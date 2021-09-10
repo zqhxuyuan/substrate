@@ -711,7 +711,7 @@ pub trait Public:
 /// An opaque 32-byte cryptographic identifier.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Default, Encode, Decode, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Hash))]
-pub struct AccountId32([u8; 32]);
+pub struct AccountId32(pub [u8; 32]);
 
 impl AccountId32 {
 	/// Create a new instance from its raw inner byte value.

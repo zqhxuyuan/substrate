@@ -17,8 +17,7 @@ mod types;
 mod impls;
 mod extension;
 pub use types::*;
-pub use extension::AccountExtension;
-
+pub use extension::*;
 pub use pallet::*;
 
 #[frame_support::pallet]
@@ -59,8 +58,20 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		#[pallet::weight(0)]
-		pub fn create_permission_auth(
+		pub fn create_account(
 			origin: OriginFor<T>,
+			account_id: T::AccountId, // account name
+			pub_key_account: T::AccountId, // owner public key
+			active_pub_key_account: Option<T::AccountId>, // active public key
+		) -> DispatchResult {
+			Pallet::<T>::_create_account(origin, account_id, pub_key_account, active_pub_key_account)
+		}
+
+
+		#[pallet::weight(0)]
+		pub fn create_permission_auth(
+			origin: OriginFor<T>, // the public key of owner,active,custom role
+			account_id: T::AccountId, // account name
 			perm_name: PermType,
 			parent_perm_name: Option<PermType>,
 			perms: Vec<OnePermissionData>,
@@ -68,43 +79,47 @@ pub mod pallet {
 			threshold: u32,
 		) -> DispatchResult {
 			log::info!("perm_name:{:?}, threshold:{}", perm_name, threshold);
-			Pallet::<T>::_create_permission_auth(origin, perm_name, parent_perm_name, perms, auths, threshold)
+			Pallet::<T>::_create_permission_auth(origin, account_id, perm_name, parent_perm_name, perms, auths, threshold)
 		}
 
 		#[pallet::weight(0)]
 		pub fn add_or_update_permission(origin: OriginFor<T>,
+										account_id: T::AccountId,
 										perm_name: PermType,
 										perm_module: PermModule,
 										perm_effect: Effect,
 										perm_method: Option<[u8; 5]>
 		) -> DispatchResult {
-			Pallet::<T>::_add_or_update_permission(origin, perm_name, perm_module, perm_effect, perm_method)
+			Pallet::<T>::_add_or_update_permission(origin, account_id, perm_name, perm_module, perm_effect, perm_method)
 		}
 
 		#[pallet::weight(0)]
 		pub fn add_or_update_auth(origin: OriginFor<T>,
+								  account_id: T::AccountId,
 								  perm_name: PermType,
 								  account_key: AccountOrKey,
 								  weight: u32,
 								  threshold: u32,
 		) -> DispatchResult {
-			Pallet::<T>::_add_or_update_auth(origin, perm_name, account_key, weight, threshold)
+			Pallet::<T>::_add_or_update_auth(origin, account_id, perm_name, account_key, weight, threshold)
 		}
 
 		#[pallet::weight(0)]
 		pub fn delete_permission(origin: OriginFor<T>,
+								 account_id: T::AccountId,
 								 perm_name: PermType,
 								 perm_modules: Vec<PermModule>,
 		) -> DispatchResult {
-			Pallet::<T>::_delete_permission(origin, perm_name, perm_modules)
+			Pallet::<T>::_delete_permission(origin, account_id, perm_name, perm_modules)
 		}
 
 		#[pallet::weight(0)]
 		pub fn delete_auth(origin: OriginFor<T>,
+						   account_id: T::AccountId,
 						   perm_name: PermType,
 						   account_keys: Vec<AccountOrKey>,
 		) -> DispatchResult {
-			Pallet::<T>::_delete_auth(origin, perm_name, account_keys)
+			Pallet::<T>::_delete_auth(origin, account_id, perm_name, account_keys)
 		}
 	}
 
@@ -113,18 +128,30 @@ pub mod pallet {
 		_,
 		Twox64Concat,
 		T::AccountId,
+		// (owner, owner_permission_auth)
+		// (active, active_permission_auth)
+		// (custom, custom_permission_auth)
 		BoundedVec<(PermType, PermissionAndOwnerData<T::MaxPermission, T::MaxAuth>), T::MaxOthers>,
 		OptionQuery,
 	>;
 
-	// public key to account name maps
-	// a public key can exist in many account
+	// public key to account name maps. a public key can exist in many account
+	// the account name is encoded(hash32) also as AccountId, with character "VTC" prefix.
 	#[pallet::storage]
-	pub(super) type Key2AccountMap<T: Config> = StorageMap<
+	pub(super) type OwnerAccountIdMap<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
 		T::AccountId,
-		BoundedVec<[u8; 5], T::MaxOthers>,
+		BoundedVec<T::AccountId, T::MaxOthers>,
+		ValueQuery,
+	>;
+
+	#[pallet::storage]
+	pub(super) type ActiveAccountIdMap<T: Config> = StorageMap<
+		_,
+		Twox64Concat,
+		T::AccountId,
+		BoundedVec<T::AccountId, T::MaxOthers>,
 		OptionQuery,
 	>;
 

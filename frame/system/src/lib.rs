@@ -791,6 +791,7 @@ pub enum RawOrigin<AccountId> {
 	Root,
 	/// It is signed by some public key and we provide the `AccountId`.
 	Signed(AccountId),
+	Signed2(AccountId, AccountId),
 	/// It is signed by nobody, can be either:
 	/// * included and agreed upon by the validators anyway,
 	/// * or unsigned transaction validated by a pallet.
@@ -891,6 +892,7 @@ impl<O: Into<Result<RawOrigin<AccountId>, O>> + From<RawOrigin<AccountId>>, Acco
 {
 	type Success = AccountId;
 	fn try_origin(o: O) -> Result<Self::Success, O> {
+		// let o_1 = o.into();
 		o.into().and_then(|o| match o {
 			RawOrigin::Signed(who) => Ok(who),
 			r => Err(O::from(r)),
@@ -986,11 +988,21 @@ impl<
 /// Ensure that the origin `o` represents a signed extrinsic (i.e. transaction).
 /// Returns `Ok` with the account that signed the extrinsic or an `Err` otherwise.
 pub fn ensure_signed<OuterOrigin, AccountId>(o: OuterOrigin) -> Result<AccountId, BadOrigin>
-where
-	OuterOrigin: Into<Result<RawOrigin<AccountId>, OuterOrigin>>,
+	where
+		OuterOrigin: Into<Result<RawOrigin<AccountId>, OuterOrigin>>,
 {
 	match o.into() {
 		Ok(RawOrigin::Signed(t)) => Ok(t),
+		_ => Err(BadOrigin),
+	}
+}
+
+pub fn ensure_signed2<OuterOrigin, AccountId>(o: OuterOrigin, o2: AccountId) -> Result<AccountId, BadOrigin>
+	where
+		OuterOrigin: Into<Result<RawOrigin<AccountId>, OuterOrigin>>,
+{
+	match o.into() {
+		Ok(RawOrigin::Signed2(t1, t2)) => Ok(t1),
 		_ => Err(BadOrigin),
 	}
 }
@@ -1710,7 +1722,7 @@ impl<T: Config> Lookup for ChainContext<T> {
 
 /// Prelude to be used alongside pallet macro, for ease of use.
 pub mod pallet_prelude {
-	pub use crate::{ensure_none, ensure_root, ensure_signed};
+	pub use crate::{ensure_none, ensure_root, ensure_signed, ensure_signed2};
 
 	/// Type alias for the `Origin` associated type of system config.
 	pub type OriginFor<T> = <T as crate::Config>::Origin;

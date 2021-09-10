@@ -196,6 +196,10 @@ pub fn expand_outer_origin(
 			pub fn signed(by: <#runtime as #system_path::Config>::AccountId) -> Self {
 				<Origin as #scrate::traits::OriginTrait>::signed(by)
 			}
+			// Create with system signed origin and `frame-system::Config::BaseCallFilter`.
+			// pub fn signed2(by: <#runtime as #system_path::Config>::AccountId) -> Self {
+			// 	<Origin as #scrate::traits::OriginTrait>::signed(by)
+			// }
 		}
 
 		impl From<#system_path::Origin<#runtime>> for OriginCaller {

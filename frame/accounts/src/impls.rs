@@ -1,7 +1,7 @@
 use crate::{Config, Pallet, *};
 use codec::{Codec, Decode, Encode, MaxEncodedLen, EncodeLike};
 
-use sp_runtime::{traits::StaticLookup, DispatchResult, RuntimeDebug, DispatchError};
+use sp_runtime::{traits::StaticLookup, DispatchResult, RuntimeDebug, DispatchError, AccountId32};
 use sp_std::prelude::*;
 
 use frame_support::{traits::{Get, UnfilteredDispatchable}, weights::GetDispatchInfo, BoundedVec, CloneNoBound, PartialEqNoBound, RuntimeDebugNoBound, WeakBoundedVec};
@@ -11,15 +11,36 @@ use frame_system::pallet_prelude::*;
 use sp_std::convert::TryFrom;
 
 impl<T: Config> Pallet<T> {
+    pub fn _create_account(
+        _: OriginFor<T>,
+        account_id: T::AccountId, // account name
+        pub_key_account: T::AccountId,
+        active_pub_key_account: Option<T::AccountId>,
+    ) -> DispatchResult {
+        let account_ids = vec![pub_key_account];
+        let account_vec = BoundedVec::<_, T::MaxOthers>::try_from(account_ids)
+            .map_err(|_| DispatchError::CannotLookup)?;
+        OwnerAccountIdMap::<T>::insert(account_id.clone(), account_vec);
+        if let Some(active_pub_key_account) = active_pub_key_account {
+            let account_ids = vec![active_pub_key_account];
+            let account_vec = BoundedVec::<_, T::MaxOthers>::try_from(account_ids)
+                .map_err(|_| DispatchError::CannotLookup)?;
+            ActiveAccountIdMap::<T>::insert(account_id, account_vec);
+        };
+        Ok(())
+    }
+
     pub fn _create_permission_auth(
-        origin: OriginFor<T>,
+        origin: OriginFor<T>, // public key of role
+        account_id: T::AccountId, // account name encoded as account id
         perm_name: PermType,
         parent_perm_name: Option<PermType>,
         perms: Vec<OnePermissionData>,
         auths: Vec<OneAuthData>,
         threshold: u32,
     ) -> DispatchResult {
-        let sender = ensure_signed(origin)?;
+        // we need to sign public key of role and account name, means set permission for account
+        ensure_signed(origin)?;
         let permission_data = BoundedVec::<_, T::MaxPermission>::try_from(perms).map_err(|_| DispatchError::CannotLookup)?;
         let auth_data = BoundedVec::<_, T::MaxAuth>::try_from(auths).map_err(|_| DispatchError::CannotLookup)?;
         let permission_auth_data = PermissionAndOwnerData {
@@ -29,11 +50,11 @@ impl<T: Config> Pallet<T> {
             threshold: threshold,
             auths: auth_data
         };
-        let exist = PermissionMap::<T>::contains_key(&sender);
+        let exist = PermissionMap::<T>::contains_key(&account_id);
         if exist {
             // todo: only one owner and one active most, use another storage item for check
             let mut permissions_old =
-                PermissionMap::<T>::get(&sender).ok_or(DispatchError::CannotLookup)?;
+                PermissionMap::<T>::get(&account_id).ok_or(DispatchError::CannotLookup)?;
             let perm_types: Vec<PermType> = permissions_old.iter()
                 .map(|(x,_)| *x).collect::<Vec<PermType>>();
             log::info!("exist perm types:{:?}", perm_types);
@@ -44,7 +65,7 @@ impl<T: Config> Pallet<T> {
                 return Ok(())
             }
             permissions_old.try_push((perm_name, permission_auth_data));
-            PermissionMap::<T>::try_mutate(sender, |permissions|->DispatchResult {
+            PermissionMap::<T>::try_mutate(account_id, |permissions|->DispatchResult {
                 match permissions {
                     Some(permissions) => {
                         *permissions = permissions_old;
@@ -59,20 +80,21 @@ impl<T: Config> Pallet<T> {
             let permission_vec = vec![(perm_name, permission_auth_data)];
             let permission_vec =
                 BoundedVec::<_, T::MaxOthers>::try_from(permission_vec).map_err(|_| DispatchError::CannotLookup)?;
-            PermissionMap::<T>::insert(sender, permission_vec);
+            PermissionMap::<T>::insert(account_id, permission_vec);
         }
         Ok(())
     }
 
     pub fn _add_or_update_permission(origin: OriginFor<T>,
-                                    perm_name: PermType,
-                                    perm_module: PermModule,
-                                    perm_effect: Effect,
-                                    perm_method: Option<[u8; 5]>
+                                     account_id: T::AccountId, // account name encoded as account id
+                                     perm_name: PermType,
+                                     perm_module: PermModule,
+                                     perm_effect: Effect,
+                                     perm_method: Option<[u8; 5]>
     ) -> DispatchResult {
         let sender = ensure_signed(origin)?;
         let mut permissions_old =
-            PermissionMap::<T>::get(&sender).ok_or(DispatchError::CannotLookup)?;
+            PermissionMap::<T>::get(&account_id).ok_or(DispatchError::CannotLookup)?;
 
         let mut permission_new = BoundedVec::<OnePermissionData, T::MaxPermission>::default();
         let current_permission_data = OnePermissionData {
@@ -96,11 +118,11 @@ impl<T: Config> Pallet<T> {
                     auths: perm_data.auths
                 };
                 // todo: use try_mutate?
-                PermissionMap::<T>::remove(&sender);
+                PermissionMap::<T>::remove(&account_id);
                 let permission_vec = vec![(perm_name, current_permission_auth_data)];
                 let permission_vec =
                     BoundedVec::<_, T::MaxOthers>::try_from(permission_vec).map_err(|_| DispatchError::CannotLookup)?;
-                PermissionMap::<T>::insert(&sender, permission_vec);
+                PermissionMap::<T>::insert(&account_id, permission_vec);
                 return Ok(())
             }
         }
@@ -108,14 +130,15 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn _add_or_update_auth(origin: OriginFor<T>,
-                              perm_name: PermType,
-                              account_key: AccountOrKey,
-                              weight: u32,
-                              threshold: u32,
+                               account_id: T::AccountId,
+                               perm_name: PermType,
+                               account_key: AccountOrKey,
+                               weight: u32,
+                               threshold: u32,
     ) -> DispatchResult {
         let sender = ensure_signed(origin)?;
         let mut permissions_old =
-            PermissionMap::<T>::get(&sender).ok_or(DispatchError::CannotLookup)?;
+            PermissionMap::<T>::get(&account_id).ok_or(DispatchError::CannotLookup)?;
 
         let mut latest_data = BoundedVec::<OneAuthData, T::MaxAuth>::default();
         let current_data = OneAuthData {
@@ -138,11 +161,11 @@ impl<T: Config> Pallet<T> {
                     auths: latest_data
                 };
                 // todo: use try_mutate?
-                PermissionMap::<T>::remove(&sender);
+                PermissionMap::<T>::remove(&account_id);
                 let permission_vec = vec![(perm_name, current_permission_auth_data)];
                 let permission_vec =
                     BoundedVec::<_, T::MaxOthers>::try_from(permission_vec).map_err(|_| DispatchError::CannotLookup)?;
-                PermissionMap::<T>::insert(&sender, permission_vec);
+                PermissionMap::<T>::insert(&account_id, permission_vec);
                 return Ok(())
             }
         }
@@ -150,12 +173,13 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn _delete_permission(origin: OriginFor<T>,
-                             perm_name: PermType,
-                             perm_modules: Vec<PermModule>,
+                              account_id: T::AccountId,
+                              perm_name: PermType,
+                              perm_modules: Vec<PermModule>,
     ) -> DispatchResult {
         let sender = ensure_signed(origin)?;
         let mut permissions_old =
-            PermissionMap::<T>::get(&sender).ok_or(DispatchError::CannotLookup)?;
+            PermissionMap::<T>::get(&account_id).ok_or(DispatchError::CannotLookup)?;
 
         let mut permission_new = BoundedVec::<OnePermissionData, T::MaxPermission>::default();
         for (perm_type, perm_data) in permissions_old {
@@ -181,11 +205,11 @@ impl<T: Config> Pallet<T> {
                     auths: perm_data.auths
                 };
                 // todo: use try_mutate?
-                PermissionMap::<T>::remove(&sender);
+                PermissionMap::<T>::remove(&account_id);
                 let permission_vec = vec![(perm_name, current_permission_auth_data)];
                 let permission_vec =
                     BoundedVec::<_, T::MaxOthers>::try_from(permission_vec).map_err(|_| DispatchError::CannotLookup)?;
-                PermissionMap::<T>::insert(&sender, permission_vec);
+                PermissionMap::<T>::insert(&account_id, permission_vec);
                 return Ok(())
             }
         }
@@ -193,12 +217,13 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn _delete_auth(origin: OriginFor<T>,
-                       perm_name: PermType,
-                       account_keys: Vec<AccountOrKey>,
+                        account_id: T::AccountId,
+                        perm_name: PermType,
+                        account_keys: Vec<AccountOrKey>,
     ) -> DispatchResult {
         let sender = ensure_signed(origin)?;
         let mut permissions_old =
-            PermissionMap::<T>::get(&sender).ok_or(DispatchError::CannotLookup)?;
+            PermissionMap::<T>::get(&account_id).ok_or(DispatchError::CannotLookup)?;
 
         let mut data_new = BoundedVec::<OneAuthData, T::MaxAuth>::default();
         for (perm_type, perm_data) in permissions_old {
@@ -224,11 +249,11 @@ impl<T: Config> Pallet<T> {
                     auths: data_new
                 };
                 // todo: use try_mutate?
-                PermissionMap::<T>::remove(&sender);
+                PermissionMap::<T>::remove(&account_id);
                 let permission_vec = vec![(perm_name, current_permission_auth_data)];
                 let permission_vec =
                     BoundedVec::<_, T::MaxOthers>::try_from(permission_vec).map_err(|_| DispatchError::CannotLookup)?;
-                PermissionMap::<T>::insert(&sender, permission_vec);
+                PermissionMap::<T>::insert(&account_id, permission_vec);
                 return Ok(())
             }
         }
