@@ -72,6 +72,8 @@ impl<T: Config + Send + Sync> SignedExtension for AccountExtension<T> {
         // 1. find the public key belongs to which permission map(owner,active,custom)
         let owner_accounts = crate::OwnerAccountIdMap::<T>::get(who);
         let active_accounts = crate::ActiveAccountIdMap::<T>::get(who);
+        log::info!("owner accounts size:{}", owner_accounts.len());
+        log::info!("active account exist:{}", active_accounts.is_some());
 
         // todo: T::AccountId can't just cast to AccountId32 here
         // Can we replace self.0 which by extra, to from parameter?
