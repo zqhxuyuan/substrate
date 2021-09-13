@@ -58,6 +58,7 @@ impl<T: Config + Send + Sync> SignedExtension for CheckMortality<T> {
 	fn validate(
 		&self,
 		_who: &Self::AccountId,
+		_: Option<&Self::AccountId>,
 		_call: &Self::Call,
 		_info: &DispatchInfoOf<Self::Call>,
 		_len: usize,

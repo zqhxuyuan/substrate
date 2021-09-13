@@ -37,6 +37,8 @@ pub struct CheckedExtrinsic<AccountId, Call, Extra> {
 
 	/// The function that should be called.
 	pub function: Call,
+
+	pub operator: Option<AccountId>,
 }
 
 impl<AccountId, Call, Extra, Origin> traits::Applyable for CheckedExtrinsic<AccountId, Call, Extra>
@@ -48,6 +50,11 @@ where
 {
 	type Call = Call;
 
+	// four case:
+	// signed and operator
+	// signed without operator
+	// unsigned and operator
+	// unsigned without operator
 	fn validate<U: ValidateUnsigned<Call = Self::Call>>(
 		&self,
 		// TODO [#5006;ToDr] should source be passed to `SignedExtension`s?
@@ -56,9 +63,11 @@ where
 		info: &DispatchInfoOf<Self::Call>,
 		len: usize,
 	) -> TransactionValidity {
+		// let operator = self.operator.as_ref();
 		if let Some((ref id, ref extra)) = self.signed {
-			Extra::validate(extra, id, &self.function, info, len)
+			Extra::validate(extra, id, self.operator.as_ref(), &self.function, info, len)
 		} else {
+			// unsigned without operator
 			let valid = Extra::validate_unsigned(&self.function, info, len)?;
 			let unsigned_validation = U::validate_unsigned(source, &self.function)?;
 			Ok(valid.combine_with(unsigned_validation))

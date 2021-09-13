@@ -31,6 +31,7 @@ impl<T: Config + Send + Sync> AccountExtension<T> {
     /// Create new `SignedExtension` to check runtime version.
     pub fn new() -> Self {
         Self(
+            // Default::default()
             [0u8; 32], Default::default()
         )
     }
@@ -39,34 +40,41 @@ impl<T: Config + Send + Sync> AccountExtension<T> {
 impl<T: Config + Send + Sync> SignedExtension for AccountExtension<T> {
     type AccountId = T::AccountId;
     type Call = T::Call;
-    type AdditionalSigned = [u8; 32];
+    type AdditionalSigned = ();
+    // type AdditionalSigned = [u8; 32];
     // type AdditionalSigned = T::AccountId;
     type Pre = ();
     const IDENTIFIER: &'static str = "CheckAccount";
 
     fn additional_signed(&self) -> Result<Self::AdditionalSigned, TransactionValidityError> {
-        Ok(self.0)
+        Ok(())
+        // Ok(self.0)
         // Ok(self.0.clone())
     }
 
     fn validate(
         &self,
         who: &Self::AccountId, // signer of transaction
+        operator: Option<&Self::AccountId>,
         call: &Self::Call, // function in extrinsic: including CallIndex(module+function) and parameters
         _info: &DispatchInfoOf<Self::Call>,
         _len: usize,
     ) -> TransactionValidity {
-        let account = &self.0;
-        log::info!("account from extension:{:?}", account);
-        log::info!("call info:{:?}", call);
-        let account_id: AccountId32 = (*account).into();
-        log::info!("account32:{:?}", account_id);
+        // let account = &self.0;
+        // log::info!("account from extension:{:?}", account);
+        // log::info!("call info:{:?}", call);
+        // let account_id: AccountId32 = (*account).into();
+        // log::info!("account32:{:?}", account_id);
+
+        log::info!("who:{:?}", who);
+        log::info!("account:{} - {:?}", operator.is_some(), operator);
 
         // 1. find the public key belongs to which permission map(owner,active,custom)
         let owner_accounts = crate::OwnerAccountIdMap::<T>::get(who);
         let active_accounts = crate::ActiveAccountIdMap::<T>::get(who);
 
         // todo: T::AccountId can't just cast to AccountId32 here
+        // Can we replace self.0 which by extra, to from parameter?
 
         // return InvalidTransaction::Custom(1).into();
         Ok(ValidTransaction {

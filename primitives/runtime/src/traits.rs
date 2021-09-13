@@ -728,6 +728,8 @@ pub trait Extrinsic: Sized + MaybeMallocSizeOf {
 	/// extrinsics.
 	type SignaturePayload;
 
+	type Address;
+
 	/// Is this `Extrinsic` signed?
 	/// If no information are available about signed/unsigned, `None` should be returned.
 	fn is_signed(&self) -> Option<bool> {
@@ -741,6 +743,10 @@ pub trait Extrinsic: Sized + MaybeMallocSizeOf {
 	/// 2. Unsigned Transactions (no signature; represent "system calls" or other special kinds of
 	/// calls) 3. Signed Transactions (with signature; a regular transactions with known origin)
 	fn new(_call: Self::Call, _signed_data: Option<Self::SignaturePayload>) -> Option<Self> {
+		None
+	}
+
+	fn new2(_call: Self::Call, _signed_data: Option<Self::SignaturePayload>, operator: Self::Address) -> Option<Self> {
 		None
 	}
 }
@@ -869,12 +875,23 @@ pub trait SignedExtension: Codec + Debug + Sync + Send + Clone + Eq + PartialEq 
 	fn validate(
 		&self,
 		_who: &Self::AccountId,
+		_operator: Option<&Self::AccountId>,
 		_call: &Self::Call,
 		_info: &DispatchInfoOf<Self::Call>,
 		_len: usize,
 	) -> TransactionValidity {
 		Ok(ValidTransaction::default())
 	}
+
+	// fn validate(
+	// 	&self,
+	// 	_who: &Self::AccountId,
+	// 	_call: &Self::Call,
+	// 	_info: &DispatchInfoOf<Self::Call>,
+	// 	_len: usize,
+	// ) -> TransactionValidity {
+	// 	Ok(ValidTransaction::default())
+	// }
 
 	/// Do any pre-flight stuff for a signed transaction.
 	///
@@ -891,7 +908,7 @@ pub trait SignedExtension: Codec + Debug + Sync + Send + Clone + Eq + PartialEq 
 		info: &DispatchInfoOf<Self::Call>,
 		len: usize,
 	) -> Result<Self::Pre, TransactionValidityError> {
-		self.validate(who, call, info, len)
+		self.validate(who, None, call, info, len)
 			.map(|_| Self::Pre::default())
 			.map_err(Into::into)
 	}
@@ -981,12 +998,13 @@ impl<AccountId, Call: Dispatchable> SignedExtension for Tuple {
 	fn validate(
 		&self,
 		who: &Self::AccountId,
+		operator: Option<&Self::AccountId>,
 		call: &Self::Call,
 		info: &DispatchInfoOf<Self::Call>,
 		len: usize,
 	) -> TransactionValidity {
 		let valid = ValidTransaction::default();
-		for_tuples!( #( let valid = valid.combine_with(Tuple.validate(who, call, info, len)?); )* );
+		for_tuples!( #( let valid = valid.combine_with(Tuple.validate(who, operator, call, info, len)?); )* );
 		Ok(valid)
 	}
 

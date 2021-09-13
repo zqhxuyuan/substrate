@@ -313,6 +313,7 @@ impl<'a> Iterator for BlockContentIterator<'a> {
 					},
 					BlockType::Noop => Call::System(SystemCall::remark(Vec::new())),
 				},
+				operator: None,
 			},
 			self.runtime_version.spec_version,
 			self.runtime_version.transaction_version,
@@ -572,9 +573,10 @@ impl BenchKeyring {
 				UncheckedExtrinsic {
 					signature: Some((sp_runtime::MultiAddress::Id(signed), signature, extra)),
 					function: payload.0,
+					operator: None,
 				}
 			},
-			None => UncheckedExtrinsic { signature: None, function: xt.function },
+			None => UncheckedExtrinsic { signature: None, function: xt.function, operator: None, },
 		}
 	}
 

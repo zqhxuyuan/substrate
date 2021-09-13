@@ -955,6 +955,7 @@ impl<'a> ::serde::Deserialize<'a> for OpaqueExtrinsic {
 impl traits::Extrinsic for OpaqueExtrinsic {
 	type Call = ();
 	type SignaturePayload = ();
+	type Address = ();
 }
 
 /// Print something that implements `Printable` from the runtime.

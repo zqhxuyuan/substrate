@@ -210,6 +210,7 @@ where
 {
 	type Call = ();
 	type SignaturePayload = ();
+	type Address = ();
 
 	fn is_signed(&self) -> Option<bool> {
 		None
@@ -334,6 +335,7 @@ impl<Call: Codec + Sync + Send, Context, Extra> Checkable<Context> for TestXt<Ca
 impl<Call: Codec + Sync + Send, Extra> traits::Extrinsic for TestXt<Call, Extra> {
 	type Call = Call;
 	type SignaturePayload = (u64, Extra);
+	type Address = ();
 
 	fn is_signed(&self) -> Option<bool> {
 		Some(self.signature.is_some())
@@ -370,7 +372,7 @@ where
 		len: usize,
 	) -> TransactionValidity {
 		if let Some((ref id, ref extra)) = self.signature {
-			Extra::validate(extra, id, &self.call, info, len)
+			Extra::validate(extra, id, None, &self.call, info, len)
 		} else {
 			let valid = Extra::validate_unsigned(&self.call, info, len)?;
 			let unsigned_validation = U::validate_unsigned(source, &self.call)?;

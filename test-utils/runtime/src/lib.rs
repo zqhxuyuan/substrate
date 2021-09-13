@@ -204,6 +204,7 @@ impl BlindCheckable for Extrinsic {
 impl ExtrinsicT for Extrinsic {
 	type Call = Extrinsic;
 	type SignaturePayload = ();
+	type Address = ();
 
 	fn is_signed(&self) -> Option<bool> {
 		if let Extrinsic::IncludeData(_) = *self {

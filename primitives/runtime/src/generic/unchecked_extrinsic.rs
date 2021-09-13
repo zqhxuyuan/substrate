@@ -47,6 +47,7 @@ where
 	pub signature: Option<(Address, Signature, Extra)>,
 	/// The function that should be called.
 	pub function: Call,
+	pub operator: Option<Address>,
 }
 
 #[cfg(feature = "std")]
@@ -66,12 +67,22 @@ impl<Address, Call, Signature, Extra: SignedExtension>
 {
 	/// New instance of a signed extrinsic aka "transaction".
 	pub fn new_signed(function: Call, signed: Address, signature: Signature, extra: Extra) -> Self {
-		Self { signature: Some((signed, signature, extra)), function }
+		Self { signature: Some((signed, signature, extra)), function, operator: None }
+	}
+
+	/// New instance of a signed extrinsic aka "transaction".
+	pub fn new_signed2(function: Call, signed: Address, signature: Signature, extra: Extra, operator: Address) -> Self {
+		Self { signature: Some((signed, signature, extra)), function, operator: Some(operator) }
 	}
 
 	/// New instance of an unsigned extrinsic aka "inherent".
 	pub fn new_unsigned(function: Call) -> Self {
-		Self { signature: None, function }
+		Self { signature: None, function, operator: None }
+	}
+
+	/// New instance of an unsigned extrinsic aka "inherent".
+	pub fn new_unsigned2(function: Call, operator: Address) -> Self {
+		Self { signature: None, function, operator: Some(operator) }
 	}
 }
 
@@ -82,6 +93,8 @@ impl<Address, Call, Signature, Extra: SignedExtension> Extrinsic
 
 	type SignaturePayload = (Address, Signature, Extra);
 
+	type Address = Address;
+
 	fn is_signed(&self) -> Option<bool> {
 		Some(self.signature.is_some())
 	}
@@ -91,6 +104,14 @@ impl<Address, Call, Signature, Extra: SignedExtension> Extrinsic
 			Self::new_signed(function, address, signature, extra)
 		} else {
 			Self::new_unsigned(function)
+		})
+	}
+
+	fn new2(function: Call, signed_data: Option<Self::SignaturePayload>, operator: Address) -> Option<Self> {
+		Some(if let Some((address, signature, extra)) = signed_data {
+			Self::new_signed2(function, address, signature, extra, operator)
+		} else {
+			Self::new_unsigned2(function, operator)
 		})
 	}
 }
@@ -110,6 +131,13 @@ where
 
 	fn check(self, lookup: &Lookup) -> Result<Self::Checked, TransactionValidityError> {
 		log::info!("UncheckedExtrinsic:{:?}", self);
+		let operator = match self.operator {
+			Some(operator) => {
+				let account = lookup.lookup(operator)?;
+				Some(account)
+			},
+			None => None,
+		};
 		Ok(match self.signature {
 			Some((signed, signature, extra)) => {
 				let signed = lookup.lookup(signed)?;
@@ -124,9 +152,9 @@ where
 				}
 
 				let (function, extra, _) = raw_payload.deconstruct();
-				CheckedExtrinsic { signed: Some((signed, extra)), function }
+				CheckedExtrinsic { signed: Some((signed, extra)), function, operator }
 			},
-			None => CheckedExtrinsic { signed: None, function: self.function },
+			None => CheckedExtrinsic { signed: None, function: self.function, operator },
 		})
 	}
 }
@@ -213,8 +241,10 @@ where
 		let _length_do_not_remove_me_see_above: Vec<()> = Decode::decode(input)?;
 
 		let version = input.read_byte()?;
+		let operator = input.read_byte()?;
 
 		let is_signed = version & 0b1000_0000 != 0;
+		let is_operator = operator & 0b1000_0000 != 0;
 		let version = version & 0b0111_1111;
 		if version != EXTRINSIC_VERSION {
 			return Err("Invalid transaction version".into())
@@ -223,6 +253,7 @@ where
 		Ok(Self {
 			signature: if is_signed { Some(Decode::decode(input)?) } else { None },
 			function: Decode::decode(input)?,
+			operator: if is_operator { Some(Decode::decode(input)?) } else { None },
 		})
 	}
 }
@@ -241,13 +272,41 @@ where
 		match self.signature.as_ref() {
 			Some(s) => {
 				tmp.push(EXTRINSIC_VERSION | 0b1000_0000);
-				s.encode_to(&mut tmp);
+				// s.encode_to(&mut tmp);
 			},
 			None => {
 				tmp.push(EXTRINSIC_VERSION & 0b0111_1111);
 			},
 		}
+		// 1 byte operator flag.
+		match self.operator.as_ref() {
+			Some(s) => {
+				tmp.push(EXTRINSIC_VERSION | 0b1000_0000);
+				// s.encode_to(&mut tmp);
+			},
+			None => {
+				tmp.push(EXTRINSIC_VERSION & 0b0111_1111);
+			},
+		}
+		match self.signature.as_ref() {
+			Some(s) => {
+				// tmp.push(EXTRINSIC_VERSION | 0b1000_0000);
+				s.encode_to(&mut tmp);
+			},
+			None => {
+				// tmp.push(EXTRINSIC_VERSION & 0b0111_1111);
+			},
+		}
 		self.function.encode_to(&mut tmp);
+		match self.operator.as_ref() {
+			Some(s) => {
+				// tmp.push(EXTRINSIC_VERSION | 0b1000_0000);
+				s.encode_to(&mut tmp);
+			},
+			None => {
+				// tmp.push(EXTRINSIC_VERSION & 0b0111_1111);
+			},
+		}
 
 		let compact_len = codec::Compact::<u32>(tmp.len() as u32);
 
