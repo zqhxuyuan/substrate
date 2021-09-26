@@ -28,6 +28,7 @@ pub mod pallet {
 	use frame_support::WeakBoundedVec;
 	use frame_support::BoundedVec;
 	use sp_std::convert::TryFrom;
+	use sp_runtime::AccountId32;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
@@ -60,9 +61,9 @@ pub mod pallet {
 		#[pallet::weight(0)]
 		pub fn create_account(
 			origin: OriginFor<T>,
-			account_id: T::AccountId, // account name
-			pub_key_account: T::AccountId, // owner public key
-			active_pub_key_account: Option<T::AccountId>, // active public key
+			account_id: AccountId32, // account name
+			pub_key_account: AccountId32, // owner public key
+			active_pub_key_account: Option<AccountId32>, // active public key
 		) -> DispatchResult {
 			Pallet::<T>::_create_account(origin, account_id, pub_key_account, active_pub_key_account)
 		}
@@ -141,8 +142,10 @@ pub mod pallet {
 	pub(super) type OwnerAccountIdMap<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
-		T::AccountId,
-		BoundedVec<T::AccountId, T::MaxOthers>,
+		// T::AccountId,
+		// BoundedVec<T::AccountId, T::MaxOthers>,
+		AccountId32,
+		AccountId32,
 		ValueQuery,
 	>;
 
@@ -150,8 +153,10 @@ pub mod pallet {
 	pub(super) type ActiveAccountIdMap<T: Config> = StorageMap<
 		_,
 		Twox64Concat,
-		T::AccountId,
-		BoundedVec<T::AccountId, T::MaxOthers>,
+		// T::AccountId,
+		// BoundedVec<T::AccountId, T::MaxOthers>,
+		AccountId32,
+		AccountId32,
 		OptionQuery,
 	>;
 

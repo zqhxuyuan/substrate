@@ -13,20 +13,24 @@ use sp_std::convert::TryFrom;
 impl<T: Config> Pallet<T> {
     pub fn _create_account(
         _: OriginFor<T>,
-        account_id: T::AccountId, // account name
-        pub_key_account: T::AccountId,
-        active_pub_key_account: Option<T::AccountId>,
+        account_id: AccountId32, // account name
+        pub_key_account: AccountId32,
+        active_pub_key_account: Option<AccountId32>,
     ) -> DispatchResult {
-        let account_ids = vec![pub_key_account];
-        let account_vec = BoundedVec::<_, T::MaxOthers>::try_from(account_ids)
-            .map_err(|_| DispatchError::CannotLookup)?;
-        OwnerAccountIdMap::<T>::insert(account_id.clone(), account_vec);
+        // let account_ids = vec![pub_key_account];
+        // let account_vec = BoundedVec::<_, T::MaxOthers>::try_from(account_ids)
+        //     .map_err(|_| DispatchError::CannotLookup)?;
+        // OwnerAccountIdMap::<T>::insert(account_id.clone(), account_vec);
+        // if let Some(active_pub_key_account) = active_pub_key_account {
+        //     let account_ids = vec![active_pub_key_account];
+        //     let account_vec = BoundedVec::<_, T::MaxOthers>::try_from(account_ids)
+        //         .map_err(|_| DispatchError::CannotLookup)?;
+        //     ActiveAccountIdMap::<T>::insert(account_id, account_vec);
+        // };
+        OwnerAccountIdMap::<T>::insert(pub_key_account, account_id.clone());
         if let Some(active_pub_key_account) = active_pub_key_account {
-            let account_ids = vec![active_pub_key_account];
-            let account_vec = BoundedVec::<_, T::MaxOthers>::try_from(account_ids)
-                .map_err(|_| DispatchError::CannotLookup)?;
-            ActiveAccountIdMap::<T>::insert(account_id, account_vec);
-        };
+            OwnerAccountIdMap::<T>::insert(active_pub_key_account, account_id);
+        }
         Ok(())
     }
 

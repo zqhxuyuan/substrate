@@ -31,7 +31,7 @@ impl<T: Config + Send + Sync> AccountExtension<T> {
     /// Create new `SignedExtension` to check runtime version.
     pub fn new() -> Self {
         Self(
-            // Default::default()
+            // Default::default(), Default::default()
             [0u8; 32], Default::default()
         )
     }
@@ -60,20 +60,22 @@ impl<T: Config + Send + Sync> SignedExtension for AccountExtension<T> {
         _info: &DispatchInfoOf<Self::Call>,
         _len: usize,
     ) -> TransactionValidity {
-        // let account = &self.0;
-        // log::info!("account from extension:{:?}", account);
+        let account = self.0.clone();
+        log::info!("account from extension:{:?}", account);
         // log::info!("call info:{:?}", call);
         // let account_id: AccountId32 = (*account).into();
         // log::info!("account32:{:?}", account_id);
+
+        let account_id: AccountId32 = account.into();
 
         log::info!("who:{:?}", who);
         log::info!("account:{} - {:?}", operator.is_some(), operator);
 
         // 1. find the public key belongs to which permission map(owner,active,custom)
-        let owner_accounts = crate::OwnerAccountIdMap::<T>::get(who);
-        let active_accounts = crate::ActiveAccountIdMap::<T>::get(who);
-        log::info!("owner accounts size:{}", owner_accounts.len());
-        log::info!("active account exist:{}", active_accounts.is_some());
+        let owner_accounts = crate::OwnerAccountIdMap::<T>::get(account_id);
+        // let active_accounts = crate::ActiveAccountIdMap::<T>::get(who);
+        // log::info!("owner accounts size:{}", owner_accounts.len());
+        // log::info!("active account exist:{}", active_accounts.is_some());
 
         // todo: T::AccountId can't just cast to AccountId32 here
         // Can we replace self.0 which by extra, to from parameter?
